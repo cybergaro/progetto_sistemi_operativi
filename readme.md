@@ -1,5 +1,5 @@
-** Progetto SO Francesco Garofolo && Flavio Favero **
-# Sistema di prenotazione posti
+Progetto SO Francesco Garofolo && Flavio Favero
+# Sistema di prenotazione posti 📽️🍿
 ## Consegna
 Realizzazione di un sistema di prenotazione posti per una sala
 cinematografica. Un processo su una macchina server gestisce una mappa di
