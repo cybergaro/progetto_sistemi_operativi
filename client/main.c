@@ -7,11 +7,11 @@
 int main(int argc, char const *argv[])
 {
 
-#ifdef GUI
-    initGUI();
-#else
-    printMap();
-#endif
+    #ifdef GUI
+        initGUI();
+    #else
+        printMap();
+    #endif
 
     return 0;
 }
