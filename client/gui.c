@@ -1,6 +1,6 @@
+#include "gui.h"
 #include <gtk/gtk.h>
 #include <stdio.h>
-#include "gui.h"
 
 // CSS Aggiornato per ingrandire bottoni e testo
 const char *cinema_css =
@@ -25,10 +25,10 @@ const char *cinema_css =
     "  transition: all 0.2s ease-in-out;"
     ""
     /* --- MODIFICHE PER INGRANDIRE --- */
-    "  font-size: 20px;"      /* Scritta molto più grande (prima era default ~14px) */
-    "  padding: 0;"            /* Resettiamo il padding per usare dimensioni fisse */
-    "  min-width: 70px;"       /* Larghezza minima forzata del bottone */
-    "  min-height: 70px;"      /* Altezza minima forzata del bottone */
+    "  font-size: 20px;"  /* Scritta molto più grande (prima era default ~14px) */
+    "  padding: 0;"       /* Resettiamo il padding per usare dimensioni fisse */
+    "  min-width: 70px;"  /* Larghezza minima forzata del bottone */
+    "  min-height: 70px;" /* Altezza minima forzata del bottone */
     /* -------------------------------- */
     "}"
     ""
@@ -37,14 +37,13 @@ const char *cinema_css =
     "}"
     ""
     "button.seat-button:checked {"
-    "  background-color: #e01b24;" 
+    "  background-color: #e01b24;"
     "  border-color: #a51d2d;"
     "}"
     ""
     "button.seat-button:checked:hover {"
     "  background-color: #c01c28;"
     "}";
-
 
 void apply_css(void) {
     GtkCssProvider *provider = gtk_css_provider_new();
@@ -60,7 +59,7 @@ void apply_css(void) {
 
 void on_seat_toggled(GtkToggleButton *btn, gpointer user_data) {
     const char *seat_label = gtk_button_get_label(GTK_BUTTON(btn));
-    
+
     if (gtk_toggle_button_get_active(btn)) {
         g_print("Posto %s PRENOTATO.\n", seat_label);
     } else {
@@ -78,7 +77,7 @@ void on_activate(GtkApplication *app, gpointer user_data) {
 
     window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "Cinema Garofolo Favero - Prenotazione Posti");
-    
+
     // --- MODIFICA: Finestra più grande ---
     // Avendo ingrandito i posti, la finestra deve essere più grande (es. 900x800)
     gtk_window_set_default_size(GTK_WINDOW(window), 900, 800);
@@ -102,7 +101,7 @@ void on_activate(GtkApplication *app, gpointer user_data) {
 
     int righe = 6;
     int colonne = 10;
-    
+
     for (int r = 0; r < righe; r++) {
         for (int c = 0; c < colonne; c++) {
             char seat_name[10];
@@ -118,16 +117,15 @@ void on_activate(GtkApplication *app, gpointer user_data) {
     gtk_window_present(GTK_WINDOW(window));
 }
 
-
 int initGUI(void) {
     GtkApplication *app;
     int status;
 
     app = gtk_application_new("com.garo.garofolo_favero", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(on_activate), NULL);
-    
+
     status = g_application_run(G_APPLICATION(app), 0, NULL);
-    
+
     g_object_unref(app);
 
     return status;

@@ -1,0 +1,3 @@
+.clang-format
+*.DS_store
+*a.out
