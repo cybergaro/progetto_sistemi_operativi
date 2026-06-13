@@ -14,7 +14,7 @@
 #include <sys/types.h>
 
 #define BACKLOG 10
-#define PORT 8080
+#define PORT 8081
 
 #define NAME_FILE_MAP "cinema_map.bin"
 
@@ -25,17 +25,26 @@ struct connection_handler_arg {
 struct sockaddr_in server_addr;
 
 typedef struct {
-    unsigned short code; // indica il codice della richiesta
-    unsigned short row;  // indica la fila del posto a cui si sta facendo riferimento
-    unsigned short col;  // indica la colonna del posto
-    unsigned int dim;    // rappresenta la dimensione dei dati che seguono il preambolo
+    unsigned short code;     // indica il codice della richiesta
+    unsigned short row;      // indica la fila del posto a cui si sta facendo riferimento
+    unsigned short col;      // indica la colonna del posto
+    unsigned int booknumber; // indica il codice della prenotazione
+    unsigned int dim;        // rappresenta la dimensione dei dati che seguono il preambolo
 } SocketMessagePreamble;
 
 /**
  * Allowed codes:
  * 1) get map with flags
  * 2) send map with flags (il server spedisce al client la mappa con i posti)
+ * 3) request seat (imposta il flag di un posto a 1 indicando il fatto che su quel posto è in corso una prenotazione)
+ * 4) reserved seat (il posto ora ha il flag di prenotazine pending f=1)
+ * 5) seat not bookable (questo posto non risulta prenotabile)
+ * 6) confirm book (conferma la prenotazione)
  */
+
+int new_book_number(){
+    return (int)time(NULL);
+}
 
 void *connection_handler(void *arg) {
     struct connection_handler_arg *data = (struct connection_handler_arg *)arg;
@@ -48,6 +57,9 @@ void *connection_handler(void *arg) {
         close(client_sock);
         return NULL;
     }
+
+    // associo al client un codice di prenotazione
+    int booknumber = new_book_number();
 
     SocketMessagePreamble req;
     ssize_t read_size;
@@ -64,10 +76,14 @@ void *connection_handler(void *arg) {
         } else if (read_size == sizeof(req)) { // dati ricevuti correttamente   
             int req_code = ntohs(req.code);
 
+            if(req.booknumber != 0){ // aggiorno il codice di prenotazione
+                booknumber = ntohl(req.booknumber);
+            }
+
             printf("request code-> %d \n", req_code);
 
             switch (req_code){
-            case 1: {
+            case 1: { // richiesta della mappa dei posti
                 unsigned short int matrix[ROWS][COLS];
                 if(get_all_flag(fd, matrix) <0){
                     printf("Error: Get all map flag \n");
@@ -78,6 +94,7 @@ void *connection_handler(void *arg) {
                 res.code = htons(2);
                 res.row = 0;
                 res.col = 0;
+                res.booknumber = htonl(booknumber);
                 res.dim = htonl(sizeof(matrix));
 
                 size_t total_size = sizeof(res) + sizeof(matrix);
@@ -89,6 +106,12 @@ void *connection_handler(void *arg) {
                     printf("Error: send response (2)\n");
                     continue;
                 }
+
+                break;
+            }
+            case 3:{ // richiesta dell'assegnazione di un posto
+                int row = ntohs(req.row);
+                int col = ntohs(req.col);
 
                 break;
             }

@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,24 +17,29 @@
 #endif
 
 #define SERVER_ADDR "127.0.0.1"
-#define SERVER_PORT 8080
-
+#define SERVER_PORT 8081
 
 typedef struct {
-    unsigned short code; // indica il codice della richiesta
-    unsigned short row;  // indica la fila del posto a cui si sta facendo riferimento
-    unsigned short col;  // indica la colonna del posto
-    unsigned int dim;    // rappresenta la dimensione dei dati che seguono il preambolo
+    unsigned short code;     // indica il codice della richiesta
+    unsigned short row;      // indica la fila del posto a cui si sta facendo riferimento
+    unsigned short col;      // indica la colonna del posto
+    unsigned int booknumber; // indica il codice della prenotazione
+    unsigned int dim;        // rappresenta la dimensione dei dati che seguono il preambolo
 } SocketMessagePreamble;
 
 /**
  * Allowed codes:
  * 1) get map with flags
- *
+ * 2) send map with flags (il server spedisce al client la mappa con i posti)
+ * 3) request seat (imposta il flag di un posto a 1 indicando il fatto che su quel posto è in corso una prenotazione)
+ * 4) reserved seat (il posto ora ha il flag di prenotazine pending f=1)
+ * 5) seat not bookable (questo posto non risulta prenotabile)
+ * 6) confirm book (conferma la prenotazione)
  */
 
 int socket_des;
 unsigned short int map[ROWS][COLS]; // matrice che rappresenta lo stato di occupazione dei posti
+int booknumber = 0;
 
 void new_book() {
     SocketMessagePreamble req;
@@ -42,6 +48,7 @@ void new_book() {
     req.row = 0;
     req.col = 0;
     req.dim = 0;
+    req.booknumber = booknumber;
 
     if (send(socket_des, &req, sizeof(req), 0) < 0) {
         printf("Error: request of cinema map not found \n");
@@ -49,11 +56,84 @@ void new_book() {
     }
 
     SocketMessagePreamble res;
-    recv(socket_des, &res, sizeof(res),0);
+    recv(socket_des, &res, sizeof(res), 0);
 
-    recv(socket_des, map, sizeof(map),0);
+    recv(socket_des, map, sizeof(map), 0);
 
-    printMap(map);
+    char input[255];
+    char lettera;
+    int numero;
+    int valido = 0;
+    int option = -1;
+
+    while (option == -1) {
+        printMap(map);
+        // leggo il codice del posto (implemento un sistema che mi permette di leggere stringhe di vari tipi)
+        while (!valido) {
+            printf("Seat identificator (es. A12, A 2, C 15) \nWrite '0' to exit or '1' to confirm-> ");
+
+            if (fgets(input, sizeof(input), stdin) == NULL) {
+                printf("Error: fgets\n");
+
+                continue;
+            }
+            input[strcspn(input, "\n")] = '\0';
+
+            if (strcmp(input, "0") == 0) {
+                option = 0; // esco e non salvo
+                break;
+            }
+            if (strcmp(input, "1") == 0) {
+                option = 1; // esco e salvo
+                break;
+            }
+
+            char extra[2];
+            int elementi_letti = sscanf(input, " %c %d%1s", &lettera, &numero, extra);
+
+            if (elementi_letti != 2 || !isupper((unsigned char)lettera)) {
+                printf("Error: invalid format\n");
+                continue;
+            }
+
+            // controllo che l'elemento è effettivamente presente nella matrice
+            if (lettera - 'A' < 0 || lettera - 'A' >= ROWS) {
+                printf("Error: Letter out of range \n");
+                continue;
+            }
+            if (numero - 1 < 0 || numero - 1 >= COLS) {
+                printf("Error: Number out of range\n");
+                continue;
+            }
+
+            // controllo che il posto sia libero
+            if (map[lettera - 'A'][numero - 1] == 1) {
+                printf("⚠️ You have already selected this place \n");
+                continue;
+            }
+
+            // chiedo al server se il posto è libero
+            req.code = htons(3);
+            req.row = htons(lettera - 'A');
+            req.col = htons(numero - 1);
+
+            printf("Check if seat is free... \n");
+
+            if (send(socket_des, &req, sizeof(req), 0) < 0) {
+                printf("Error: send of control free seat \n");
+                continue;
+            }
+
+            recv(socket_des, &res, sizeof(res), 0);
+
+            map[lettera - 'A'][numero - 1] = 1;
+
+            valido = 1;
+        }
+
+        // eseguo operazioni per comunicare al server il posto che si è selezionato
+        valido = 0;
+    }
 }
 
 int main(int argc, char const *argv[]) {

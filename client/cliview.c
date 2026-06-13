@@ -6,9 +6,8 @@
 #define COLOR_GREEN "\x1b[32m"
 #define COLOR_RESET "\x1b[0m"
 #define COLOR_RED "\033[31m"
+#define COLOR_YELLOW "\x1b[1;38;5;208m"
 
-#define ROWS 10
-#define COLS 15
 
 void printMap(unsigned short int map[ROWS][COLS]) {
     system("clear");
@@ -27,7 +26,7 @@ void printMap(unsigned short int map[ROWS][COLS]) {
         ptr += sprintf(ptr, "+\n");
 
         for (int j = 0; j < COLS; j++) {
-            ptr += sprintf(ptr, "| %s%c%2d%s ", map[i][j] == 0 ? COLOR_GREEN : COLOR_RED, 'A' + i, j + 1, COLOR_RESET);
+            ptr += sprintf(ptr, "| %s%c%2d%s ", map[i][j] == 0 ? COLOR_GREEN : map[i][j] == 1 ? COLOR_YELLOW : COLOR_RED, 'A' + i, j + 1, COLOR_RESET);
         }
         ptr += sprintf(ptr, "|\n");
     }
