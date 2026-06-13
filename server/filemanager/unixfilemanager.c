@@ -37,11 +37,10 @@ int create_map(char *fname) {
 }
 
 
-int get_all_flag(int ds,unsigned short int matrix[ROWS][COLS])
+int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS])
 {
    
-    if (lseek(ds, 0, SEEK_SET) == (off_t)-1) {
-        printf("Errore lseek in get_all_flag");
+    if (lseek(ds, 0, SEEK_SET) == -1) {
         return -1;
     }
     Seat p;
@@ -49,7 +48,6 @@ int get_all_flag(int ds,unsigned short int matrix[ROWS][COLS])
         for (int c = 0; c < COLS; c++) {
             ssize_t bytes_read = read(ds, &p, sizeof(Seat));
             if (bytes_read != sizeof(Seat)) {
-                printf("Errore durante la lettura dei posti dal file");
                 return -1;
             }
             matrix[r][c] = p.flag;

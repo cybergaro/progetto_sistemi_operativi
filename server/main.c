@@ -1,54 +1,86 @@
+#include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <fcntl.h>
-#include <signal.h>
 
 // posix library
+#include "filemanager/unixfilemanager.h"
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <pthread.h>
-#include "filemanager/unixfilemanager.h"
 
 #define BACKLOG 10
-#define PORT 8080
+#define PORT 8081
 
 #define NAME_FILE_MAP "cinema_map.bin"
 
-struct connection_handler_arg{
+struct connection_handler_arg {
     int socket_id;
 };
 
 struct sockaddr_in server_addr;
 
-void *connection_handler(void *arg){
+typedef struct {
+    unsigned short code; // indica il codice della richiesta
+    unsigned short row;  // indica la fila del posto a cui si sta facendo riferimento
+    unsigned short col;  // indica la colonna del posto
+    unsigned int dim;    // rappresenta la dimensione dei dati che seguono il preambolo
+} SoketMessagePreamble;
+
+/**
+ * Allowed codes:
+ * 1) get map with flags
+ *
+ */
+
+void *connection_handler(void *arg) {
     struct connection_handler_arg *data = (struct connection_handler_arg *)arg;
+    int client_sock = data->socket_id;
 
     // creo una nuova sessione sul file
     int fd = open(NAME_FILE_MAP, O_RDWR, 0644);
-    if(fd<0){
+    if (fd < 0) {
         printf("Error: creation of new session on map file \n");
+        close(client_sock);
         return NULL;
+    }
+
+    SoketMessagePreamble req;
+    ssize_t read_size;
+
+    while (1) {
+        read_size = recv(client_sock, &req, sizeof(req), 0);
+
+        if (read_size == 0) {
+            printf("Error: client disconnected \n");
+            break;
+        } else if (read_size < 0) {
+            printf("Error: recv \n");
+            break;
+        } else if (read_size == sizeof(req)) { // dati ricevuti correttamente   
+            printf("code-> %d \n", ntohs(req.code));
+        }
     }
 
     return NULL;
 }
 
-void sigpipe_handler(int sig){
+void sigpipe_handler(int sig) {
     printf("\n Sig Pipe \n");
 }
 
-void sigint_handler(int sig){
+void sigint_handler(int sig) {
     printf("\n Sig Int \n");
 }
 
 int main(int argc, char const *argv[]) {
 
     printf("Setup... ⏳\n");
-    
+
     printf("Socket setup \n");
 
     server_addr.sin_family = AF_INET;
@@ -56,24 +88,24 @@ int main(int argc, char const *argv[]) {
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
     int general_socket = socket(PF_INET, SOCK_STREAM, 0);
-    if(general_socket == -1){
+    if (general_socket == -1) {
         printf("Error: Creation of general socket \n");
         exit(EXIT_FAILURE);
     }
 
-    if(bind(general_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1){
+    if (bind(general_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
         printf("Error: bind not found \n");
         exit(EXIT_FAILURE);
     }
 
-    if(listen(general_socket, BACKLOG)){
+    if (listen(general_socket, BACKLOG)) {
         printf("Error: listen not found");
         exit(EXIT_FAILURE);
     }
 
     printf("File setup \n");
-    
-    if(create_map(NAME_FILE_MAP) < 0){
+
+    if (create_map(NAME_FILE_MAP) < 0) {
         printf("Error: file map creation \n");
         exit(EXIT_FAILURE);
     }
@@ -94,16 +126,15 @@ int main(int argc, char const *argv[]) {
 
     sigaction(SIGINT, &sa_int, NULL);
 
-
     printf("Setup complete ✅\n");
     printf("Waiting for connection \n");
 
     int new_socket;
     pthread_t thread;
 
-    while (1){
+    while (1) {
         new_socket = accept(general_socket, NULL, NULL);
-        if(new_socket == -1){
+        if (new_socket == -1) {
             printf("Error on accept \n");
             continue;
         }
@@ -113,9 +144,8 @@ int main(int argc, char const *argv[]) {
         struct connection_handler_arg *arg = malloc(sizeof(struct connection_handler_arg));
         arg->socket_id = new_socket;
 
-        pthread_create(&thread, NULL, connection_handler, NULL);
+        pthread_create(&thread, NULL, connection_handler, arg);
     }
-    
 
     return 0;
 }

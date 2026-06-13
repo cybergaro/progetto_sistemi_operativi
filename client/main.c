@@ -16,9 +16,35 @@
 #endif
 
 #define SERVER_ADDR "127.0.0.1"
-#define SERVER_PORT 8080
+#define SERVER_PORT 8081
 
 int socket_des;
+
+typedef struct {
+    unsigned short code; // indica il codice della richiesta
+    unsigned short row;  // indica la fila del posto a cui si sta facendo riferimento
+    unsigned short col;  // indica la colonna del posto
+    unsigned int dim;    // rappresenta la dimensione dei dati che seguono il preambolo
+} SoketMessagePreamble;
+
+/**
+ * Allowed codes:
+ * 1) get map with flags
+ *
+ */
+
+void new_book() {
+    SoketMessagePreamble req;
+    req.code = htons(1);
+    req.row = htons(0);
+    req.col = htons(0);
+    req.dim = htonl(0);
+
+    if (send(socket_des, &req, sizeof(req), 0) < 0) {
+        printf("Error: request of cinema map not found \n");
+        return;
+    }
+}
 
 int main(int argc, char const *argv[]) {
 
@@ -67,6 +93,7 @@ int main(int argc, char const *argv[]) {
             return 0;
 
         case 1:
+            new_book();
             break;
 
         case 2:
