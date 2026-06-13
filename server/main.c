@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <signal.h>
 
 // posix library
 #include <sys/socket.h>
@@ -14,6 +16,8 @@
 #define BACKLOG 10
 #define PORT 8080
 
+#define NAME_FILE_MAP "cinema_map.bin"
+
 struct connection_handler_arg{
     int socket_id;
 };
@@ -23,9 +27,22 @@ struct sockaddr_in server_addr;
 void *connection_handler(void *arg){
     struct connection_handler_arg *data = (struct connection_handler_arg *)arg;
 
-    printf("ok \n");
+    // creo una nuova sessione sul file
+    int fd = open(NAME_FILE_MAP, O_RDWR, 0644);
+    if(fd<0){
+        printf("Error: creation of new session on map file \n");
+        return -1;
+    }
 
     return NULL;
+}
+
+void sigpipe_handler(int sig){
+    printf("\n Sig Pipe \n");
+}
+
+void sigint_handler(int sig){
+    printf("\n Sig Int \n");
 }
 
 int main(int argc, char const *argv[]) {
@@ -53,6 +70,30 @@ int main(int argc, char const *argv[]) {
         printf("Error: listen not found");
         exit(EXIT_FAILURE);
     }
+
+    printf("File setup \n");
+    
+    if(create_map(NAME_FILE_MAP) < 0){
+        printf("Error: file map creation \n");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Defining the management of signals\n");
+
+    struct sigaction sa_pipe;
+    sigemptyset(&sa_pipe.sa_mask);
+    sa_pipe.sa_flags = SA_RESTART;
+    sa_pipe.sa_handler = &sigpipe_handler;
+
+    sigaction(SIGPIPE, &sa_pipe, NULL);
+
+    struct sigaction sa_int;
+    sigemptyset(&sa_int.sa_mask);
+    sa_int.sa_flags = SA_RESTART;
+    sa_int.sa_handler = &sigint_handler;
+
+    sigaction(SIGINT, &sa_int, NULL);
+
 
     printf("Setup complete ✅\n");
     printf("Waiting for connection \n");
