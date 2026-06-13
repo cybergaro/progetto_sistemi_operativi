@@ -7,30 +7,32 @@
 #define COLOR_RESET "\x1b[0m"
 #define COLOR_RED "\033[31m"
 
-void printMap() {
-    int righe = 6;
-    int colonne = 10;
+#define ROWS 10
+#define COLS 15
+
+void printMap(unsigned short int map[ROWS][COLS]) {
+    system("clear");
 
     char buffer[4096];
     buffer[0] = '\0';
 
     char *ptr = buffer;
 
-    ptr += sprintf(ptr, "\n\n========================== SCHERMO ==========================\n\n");
+    ptr += sprintf(ptr, "\n\n========================================= SCHERMO =========================================\n\n");
 
-    for (int i = 0; i < righe; i++) {
-        for (int j = 0; j < colonne; j++) {
+    for (int i = 0; i < ROWS; i++) {
+        for (int j = 0; j < COLS; j++) {
             ptr += sprintf(ptr, "+-----");
         }
         ptr += sprintf(ptr, "+\n");
 
-        for (int j = 0; j < colonne; j++) {
-            ptr += sprintf(ptr, "| %s%c%2d%s ", COLOR_GREEN, 'A' + i, j + 1, COLOR_RESET);
+        for (int j = 0; j < COLS; j++) {
+            ptr += sprintf(ptr, "| %s%c%2d%s ", map[i][j] == 0 ? COLOR_GREEN : COLOR_RED, 'A' + i, j + 1, COLOR_RESET);
         }
         ptr += sprintf(ptr, "|\n");
     }
 
-    for (int j = 0; j < colonne; j++) {
+    for (int j = 0; j < COLS; j++) {
         ptr += sprintf(ptr, "+-----");
     }
     ptr += sprintf(ptr, "+\n\n\n");

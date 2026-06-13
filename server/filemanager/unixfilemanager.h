@@ -1,5 +1,6 @@
 #ifndef UNIXFILEMANAGER
 #define UNIXFILEMANAGER
+
 #define ROWS 10
 #define COLS 15
 

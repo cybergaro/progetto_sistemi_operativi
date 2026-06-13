@@ -14,7 +14,7 @@
 #include <sys/types.h>
 
 #define BACKLOG 10
-#define PORT 8081
+#define PORT 8080
 
 #define NAME_FILE_MAP "cinema_map.bin"
 
@@ -29,12 +29,12 @@ typedef struct {
     unsigned short row;  // indica la fila del posto a cui si sta facendo riferimento
     unsigned short col;  // indica la colonna del posto
     unsigned int dim;    // rappresenta la dimensione dei dati che seguono il preambolo
-} SoketMessagePreamble;
+} SocketMessagePreamble;
 
 /**
  * Allowed codes:
  * 1) get map with flags
- *
+ * 2) send map with flags (il server spedisce al client la mappa con i posti)
  */
 
 void *connection_handler(void *arg) {
@@ -49,7 +49,7 @@ void *connection_handler(void *arg) {
         return NULL;
     }
 
-    SoketMessagePreamble req;
+    SocketMessagePreamble req;
     ssize_t read_size;
 
     while (1) {
@@ -62,7 +62,41 @@ void *connection_handler(void *arg) {
             printf("Error: recv \n");
             break;
         } else if (read_size == sizeof(req)) { // dati ricevuti correttamente   
-            printf("code-> %d \n", ntohs(req.code));
+            int req_code = ntohs(req.code);
+
+            printf("request code-> %d \n", req_code);
+
+            switch (req_code){
+            case 1: {
+                unsigned short int matrix[ROWS][COLS];
+                if(get_all_flag(fd, matrix) <0){
+                    printf("Error: Get all map flag \n");
+                    continue;
+                }
+
+                SocketMessagePreamble res;
+                res.code = htons(2);
+                res.row = 0;
+                res.col = 0;
+                res.dim = htonl(sizeof(matrix));
+
+                size_t total_size = sizeof(res) + sizeof(matrix);
+
+                unsigned char buffer[total_size];
+                memcpy(buffer, &res, sizeof(res));
+                memcpy(buffer + sizeof(res), matrix, sizeof(matrix));
+                if(send(client_sock, buffer, total_size, 0)<0){
+                    printf("Error: send response (2)\n");
+                    continue;
+                }
+
+                break;
+            }
+            default:
+                break;
+            }
+
+
         }
     }
 
