@@ -63,3 +63,60 @@ int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS],short int mask)
     }
     return 0;
 }
+
+
+int seat_set_flag(int ds, char row, int col, int flag_s, int nbook_v)
+{
+
+    Seat s;
+    s.flag = flag_s;
+
+    int rows_id = row - 'A';      
+    int col_id = col - 1;
+
+    if(s.flag==0)
+    {
+        s.nbook=0;
+    }
+    else
+    {
+        s.nbook=nbook_v;    
+    }
+    off_t offset = (rows_id * COLS + col_id) * sizeof(Seat);
+
+    if(lseek(ds,offset,SEEK_SET)==(off_t)-1)
+        {
+            return -1;
+        }
+    if (write(ds,&s,sizeof(Seat))!= sizeof(Seat))
+    {
+        return -1;
+    }
+    return 0;
+}
+
+
+int seat_get_flag(int ds, char row, int col)
+{
+    Seat s;
+
+    int rows_id = row - 'A';      
+    int col_id = col - 1;
+
+    off_t offset = (rows_id* COLS+ col_id)*sizeof(Seat);
+    
+    if(lseek(ds,offset,SEEK_SET)==(off_t)-1)
+        {
+            return -1;
+        }
+    ssize_t bytes_letti = read(ds, &s, sizeof(Seat));
+
+    if (bytes_letti != sizeof(Seat)) 
+    { 
+    return -1;
+    }
+
+    return s.flag; 
+
+
+}
