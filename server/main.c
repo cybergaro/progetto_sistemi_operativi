@@ -9,11 +9,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
-#include "unixfilemanager.h"
+#include "filemanager/unixfilemanager.h"
 
 #define BACKLOG 10
 #define PORT 8080
-
 
 struct connection_handler_arg{
     int socket_id;
@@ -25,7 +24,6 @@ void *connection_handler(void *arg){
     struct connection_handler_arg *data = (struct connection_handler_arg *)arg;
 
     printf("ok \n");
-
 
     return NULL;
 }
