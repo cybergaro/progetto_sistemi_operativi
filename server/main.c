@@ -64,8 +64,6 @@ void *connection_handler(void *arg) {
     SocketMessagePreamble req;
     ssize_t read_size;
 
-
-
     while (1) {
         read_size = recv(client_sock, &req, sizeof(req), 0);
 
