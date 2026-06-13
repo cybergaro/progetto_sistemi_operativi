@@ -10,6 +10,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <sys/sem.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -23,6 +24,7 @@ struct connection_handler_arg {
 };
 
 struct sockaddr_in server_addr;
+int sems; // semafori
 
 typedef struct {
     unsigned short code;     // indica il codice della richiesta
@@ -141,7 +143,7 @@ void *connection_handler(void *arg) {
                     continue;
                 }
 
-                printf("Seat %c%d is pendign for %d\n", row+'A',col, booknumber);
+                printf("Seat %c%d is pendign for %d\n", row + 'A', col, booknumber);
 
                 break;
             }
@@ -192,6 +194,26 @@ int main(int argc, char const *argv[]) {
 
     if (create_map(NAME_FILE_MAP) < 0) {
         printf("Error: file map creation \n");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Semaphore setup \n");
+
+    sems = semget(IPC_PRIVATE, ROWS * COLS, IPC_CREAT | 0666);
+
+    if (sems < 1) {
+        printf("Error: creation of semaphore \n");
+        exit(EXIT_FAILURE);
+    }
+
+    unsigned short valori[ROWS * COLS];
+    for (int i = 0; i < ROWS * COLS; i++) valori[i] = 1;
+
+    union semun argomento;
+    argomento.array = valori;
+
+    if (semctl(sems, 0, SETALL, argomento) == -1) {
+        perror("Error: initialization of semaphores");
         exit(EXIT_FAILURE);
     }
 
