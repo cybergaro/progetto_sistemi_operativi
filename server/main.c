@@ -64,6 +64,8 @@ void *connection_handler(void *arg) {
     SocketMessagePreamble req;
     ssize_t read_size;
 
+
+
     while (1) {
         read_size = recv(client_sock, &req, sizeof(req), 0);
 
@@ -85,7 +87,7 @@ void *connection_handler(void *arg) {
             switch (req_code){
             case 1: { // richiesta della mappa dei posti
                 unsigned short int matrix[ROWS][COLS];
-                if(get_all_flag(fd, matrix) <0){
+                if(get_all_flag(fd, matrix, 1) <0){
                     printf("Error: Get all map flag \n");
                     continue;
                 }
