@@ -37,7 +37,7 @@ int create_map(char *fname) {
 }
 
 
-int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS])
+int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS],short int mask)
 {
    
     if (lseek(ds, 0, SEEK_SET) == -1) {
@@ -50,7 +50,15 @@ int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS])
             if (bytes_read != sizeof(Seat)) {
                 return -1;
             }
-            matrix[r][c] = p.flag;
+            if(mask==1){
+                if (p.flag!=0)
+                {
+                    matrix[r][c] = 2; 
+                }
+                
+            }
+            else matrix[r][c] = p.flag;
+            
         }
     }
     return 0;
