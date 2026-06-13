@@ -10,7 +10,6 @@ int create_map(char *fname) {
     if (fd < 0) {
         fd = open(fname, O_CREAT | O_RDWR, 0644);
         if (fd < 0) {
-            printf("Errore nella creazione della mappa\n");
             return -1;
         }
 
@@ -24,7 +23,6 @@ int create_map(char *fname) {
             ssize_t bytes_written = write(fd, &posto_vuoto, sizeof(Posto));
 
             if (bytes_written != sizeof(Posto)) {
-                perror("Errore durante l'inizializzazione dei posti");
                 close(fd);
                 return -1;
             }

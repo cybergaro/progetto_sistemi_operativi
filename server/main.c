@@ -31,7 +31,7 @@ void *connection_handler(void *arg){
     int fd = open(NAME_FILE_MAP, O_RDWR, 0644);
     if(fd<0){
         printf("Error: creation of new session on map file \n");
-        return -1;
+        return NULL;
     }
 
     return NULL;
