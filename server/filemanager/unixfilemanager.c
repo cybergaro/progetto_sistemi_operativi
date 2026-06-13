@@ -100,3 +100,43 @@ int seat_get_flag(int ds, int row, int col) {
 
     return s.flag;
 }
+
+
+
+int set_all_flag_from_nbook(int ds, int flag, int nbook)
+{
+
+    
+    Seat s;
+
+    lseek(ds, 0, SEEK_SET);
+    
+
+    for (int i = 0; i < ROWS*COLS; i++)
+    {
+        off_t offset = i * sizeof(Seat);
+
+        if (read(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
+            return -1;
+        }
+
+        if(s.nbook==nbook)
+        {
+            s.flag= flag;
+
+            if (flag == 0) {
+                s.nbook = 0;
+            }
+
+            if (lseek(ds, offset, SEEK_SET) == (off_t)-1) {
+                return -1;
+            }
+
+            if (write(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
+                return -1;
+            }
+
+        }
+    }
+    return 0;
+}
