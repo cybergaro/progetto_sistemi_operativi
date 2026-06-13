@@ -17,7 +17,7 @@
 #endif
 
 #define SERVER_ADDR "127.0.0.1"
-#define SERVER_PORT 8081
+#define SERVER_PORT 8080
 
 typedef struct {
     unsigned short code;     // indica il codice della richiesta
@@ -126,9 +126,15 @@ void new_book() {
 
             recv(socket_des, &res, sizeof(res), 0);
 
-            map[lettera - 'A'][numero - 1] = 1;
+            if(ntohs(res.code) == 5){
+                printf("Error: this seat is alredy taken \n");
+                continue;
+            }else if(ntohs(res.code) == 4){
 
-            valido = 1;
+                map[lettera - 'A'][numero - 1] = 1;
+                
+                valido = 1;
+            }
         }
 
         // eseguo operazioni per comunicare al server il posto che si è selezionato

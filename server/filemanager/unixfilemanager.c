@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
 
 int create_map(char *fname) {
     int fd = open(fname, O_RDWR, 0644);
@@ -36,10 +37,8 @@ int create_map(char *fname) {
     return 0;
 }
 
+int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS], short int mask) {
 
-int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS],short int mask)
-{
-   
     if (lseek(ds, 0, SEEK_SET) == -1) {
         return -1;
     }
@@ -50,73 +49,54 @@ int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS],short int mask)
             if (bytes_read != sizeof(Seat)) {
                 return -1;
             }
-            if(mask==1){
-                if (p.flag!=0)
-                {
-                    matrix[r][c] = 2; 
+            if (mask == 1) {
+                if (p.flag != 0) {
+                    matrix[r][c] = 2;
                 }
-                
-            }
-            else matrix[r][c] = p.flag;
-            
+
+            } else
+                matrix[r][c] = p.flag;
         }
     }
     return 0;
 }
 
-
-int seat_set_flag(int ds, char row, int col, int flag_s, int nbook_v)
-{
+int seat_set_flag(int ds, int row, int col, int flag_s, int nbook_v) {
 
     Seat s;
     s.flag = flag_s;
 
-    int rows_id = row - 'A';      
-    int col_id = col - 1;
-
-    if(s.flag==0)
-    {
-        s.nbook=0;
+    if (s.flag == 0) {
+        s.nbook = 0;
+    } else {
+        s.nbook = nbook_v;
     }
-    else
-    {
-        s.nbook=nbook_v;    
-    }
-    off_t offset = (rows_id * COLS + col_id) * sizeof(Seat);
+    off_t offset = (row * COLS + col) * sizeof(Seat);
 
-    if(lseek(ds,offset,SEEK_SET)==(off_t)-1)
-        {
-            return -1;
-        }
-    if (write(ds,&s,sizeof(Seat))!= sizeof(Seat))
-    {
+    if (lseek(ds, offset, SEEK_SET) == (off_t)-1) {
+        return -1;
+    }
+    if (write(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
         return -1;
     }
     return 0;
 }
 
-
-int seat_get_flag(int ds, char row, int col)
-{
+int seat_get_flag(int ds, int row, int col) {
     Seat s;
 
-    int rows_id = row - 'A';      
-    int col_id = col - 1;
+    off_t offset = (row * COLS + col) * sizeof(Seat);
 
-    off_t offset = (rows_id* COLS+ col_id)*sizeof(Seat);
-    
-    if(lseek(ds,offset,SEEK_SET)==(off_t)-1)
-        {
-            return -1;
-        }
+    if (lseek(ds, offset, SEEK_SET) == (off_t)-1) {
+        printf("errore lseek \n");
+        return -1;
+    }
     ssize_t bytes_letti = read(ds, &s, sizeof(Seat));
 
-    if (bytes_letti != sizeof(Seat)) 
-    { 
-    return -1;
+    if (bytes_letti != sizeof(Seat)) {
+        printf("errore byte letti \n");
+        return -1;
     }
 
-    return s.flag; 
-
-
+    return s.flag;
 }

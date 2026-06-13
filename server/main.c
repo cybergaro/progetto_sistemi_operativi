@@ -14,7 +14,7 @@
 #include <sys/types.h>
 
 #define BACKLOG 10
-#define PORT 8081
+#define PORT 8080
 
 #define NAME_FILE_MAP "cinema_map.bin"
 
@@ -42,7 +42,7 @@ typedef struct {
  * 6) confirm book (conferma la prenotazione)
  */
 
-int new_book_number(){
+int new_book_number() {
     return (int)time(NULL);
 }
 
@@ -73,19 +73,19 @@ void *connection_handler(void *arg) {
         } else if (read_size < 0) {
             printf("Error: recv \n");
             break;
-        } else if (read_size == sizeof(req)) { // dati ricevuti correttamente   
+        } else if (read_size == sizeof(req)) { // dati ricevuti correttamente
             int req_code = ntohs(req.code);
 
-            if(req.booknumber != 0){ // aggiorno il codice di prenotazione
+            if (req.booknumber != 0) { // aggiorno il codice di prenotazione
                 booknumber = ntohl(req.booknumber);
             }
 
             printf("request code-> %d \n", req_code);
 
-            switch (req_code){
+            switch (req_code) {
             case 1: { // richiesta della mappa dei posti
                 unsigned short int matrix[ROWS][COLS];
-                if(get_all_flag(fd, matrix, 1) <0){
+                if (get_all_flag(fd, matrix, 1) < 0) {
                     printf("Error: Get all map flag \n");
                     continue;
                 }
@@ -102,24 +102,52 @@ void *connection_handler(void *arg) {
                 unsigned char buffer[total_size];
                 memcpy(buffer, &res, sizeof(res));
                 memcpy(buffer + sizeof(res), matrix, sizeof(matrix));
-                if(send(client_sock, buffer, total_size, 0)<0){
+                if (send(client_sock, buffer, total_size, 0) < 0) {
                     printf("Error: send response (2)\n");
                     continue;
                 }
 
                 break;
             }
-            case 3:{ // richiesta dell'assegnazione di un posto
+            case 3: { // richiesta dell'assegnazione di un posto
                 int row = ntohs(req.row);
                 int col = ntohs(req.col);
+
+                int flag = seat_get_flag(fd, row, col);
+                if (flag < 0) {
+                    printf("Error: seat get flag \n");
+                    continue;
+                }
+
+                SocketMessagePreamble res;
+                res.row = htons(row);
+                res.col = htons(col);
+                res.booknumber = 0;
+                res.dim = 0;
+
+                if (flag == 0) {
+                    // salvo nel file che quel posto è in fase pending
+                    if (seat_set_flag(fd, row, col, 1, booknumber) < 0) {
+                        printf("Error: seat set flag f = 1");
+                    }
+
+                    res.code = htons(4);
+                } else {
+                    res.code = htons(5);
+                }
+
+                if (send(client_sock, &res, sizeof(res), 0) < 0) {
+                    printf("Error: send response (4/5)\n");
+                    continue;
+                }
+
+                printf("Seat %c%d is pendign for %d\n", row+'A',col, booknumber);
 
                 break;
             }
             default:
                 break;
             }
-
-
         }
     }
 
