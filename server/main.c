@@ -9,6 +9,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include "unixfilemanager.h"
 
 #define BACKLOG 10
 #define PORT 8080
