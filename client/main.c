@@ -17,7 +17,7 @@
 #endif
 
 #define SERVER_ADDR "127.0.0.1"
-#define SERVER_PORT 8080
+#define SERVER_PORT 8081
 
 typedef struct {
     unsigned short code;     // indica il codice della richiesta

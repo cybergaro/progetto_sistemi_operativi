@@ -4,8 +4,9 @@
 #define ROWS 10
 #define COLS 15
 
+int sems; // semafori per la gestione dei file
 
-typedef struct{
+typedef struct {
     unsigned short int flag;
     unsigned int nbook;
 } Seat;
@@ -14,9 +15,8 @@ int create_map(char *fname); // crea il file che rappresenta la mappa del cinema
 
 int seat_set_flag(int ds, int row, int col, int flag, int nbook); // permette di associare/disassociare un posto da una certa prenotazionre
 int seat_get_flag(int ds, int row, int col);
-int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS],short int mask);
+int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS], short int mask, int nbook);
 int set_all_flag_from_nbook(int ds, int flag, int nbook);
 // int get_seats_from_book(int ds, int nbook);
-
 
 #endif

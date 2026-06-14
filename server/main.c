@@ -15,7 +15,7 @@
 #include <sys/types.h>
 
 #define BACKLOG 10
-#define PORT 8080
+#define PORT 8081
 
 #define NAME_FILE_MAP "cinema_map.bin"
 
@@ -24,7 +24,6 @@ struct connection_handler_arg {
 };
 
 struct sockaddr_in server_addr;
-int sems; // semafori
 
 typedef struct {
     unsigned short code;     // indica il codice della richiesta
@@ -42,6 +41,7 @@ typedef struct {
  * 4) reserved seat (il posto ora ha il flag di prenotazine pending f=1)
  * 5) seat not bookable (questo posto non risulta prenotabile)
  * 6) confirm book (conferma la prenotazione)
+ * 7) cancell book (rimuove tutti i posti di una prenotazione)
  */
 
 int new_book_number() {
@@ -70,8 +70,13 @@ void *connection_handler(void *arg) {
         read_size = recv(client_sock, &req, sizeof(req), 0);
 
         if (read_size == 0) {
-            printf("Error: client disconnected \n");
-            break;
+            printf("Client disconnected! \n");
+            
+            // rilascio tutti i posti che quel cliente stava prenotando
+            set_all_flag_from_nbook(fd, 0, booknumber);
+
+            close(fd);
+            return NULL;
         } else if (read_size < 0) {
             printf("Error: recv \n");
             break;
@@ -87,7 +92,7 @@ void *connection_handler(void *arg) {
             switch (req_code) {
             case 1: { // richiesta della mappa dei posti
                 unsigned short int matrix[ROWS][COLS];
-                if (get_all_flag(fd, matrix, 1) < 0) {
+                if (get_all_flag(fd, matrix, 1, booknumber) < 0) {
                     printf("Error: Get all map flag \n");
                     continue;
                 }
@@ -213,7 +218,7 @@ int main(int argc, char const *argv[]) {
     argomento.array = valori;
 
     if (semctl(sems, 0, SETALL, argomento) == -1) {
-        perror("Error: initialization of semaphores");
+        printf("Error: initialization of semaphores \n");
         exit(EXIT_FAILURE);
     }
 

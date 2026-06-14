@@ -2,8 +2,8 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/sem.h>
 #include <unistd.h>
-#include <stdio.h>
 
 int create_map(char *fname) {
     int fd = open(fname, O_RDWR, 0644);
@@ -37,21 +37,48 @@ int create_map(char *fname) {
     return 0;
 }
 
-int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS], short int mask) {
+// questa funzione permette di avere una lista dei flag dei vari posti del cinema
+// il parametro mask permete di fare in modo che tutti i flag diversi da 0 siano portati a 2 in
+// modo che tutti i client sappiano che quel posto non è disponibile, 
+// a meno di quelli che hano un certo numero di prenotazione specificato in nbook
+
+int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS], short int mask, int nbook) {
 
     if (lseek(ds, 0, SEEK_SET) == -1) {
         return -1;
     }
-    Seat p;
+
+    struct sembuf op;
+    op.sem_flg = 0;
+
+    Seat p;  
     for (int r = 0; r < ROWS; r++) {
         for (int c = 0; c < COLS; c++) {
+
+            op.sem_num = r * COLS + c;
+            op.sem_op = -1;
+
+            if (semop(sems, &op, 1) == -1) {
+                return -1;
+            }
+
             ssize_t bytes_read = read(ds, &p, sizeof(Seat));
             if (bytes_read != sizeof(Seat)) {
                 return -1;
             }
+
+            op.sem_op = 1;
+            if (semop(sems, &op, 1) == -1) {
+                return -1;
+            }
+
             if (mask == 1) {
                 if (p.flag != 0) {
-                    matrix[r][c] = 2;
+                    if(nbook != 0 && p.nbook == nbook){
+                        matrix[r][c] = 1;
+                    }else{
+                        matrix[r][c] = 2;
+                    }
                 }
 
             } else
@@ -76,9 +103,26 @@ int seat_set_flag(int ds, int row, int col, int flag_s, int nbook_v) {
     if (lseek(ds, offset, SEEK_SET) == (off_t)-1) {
         return -1;
     }
+
+    struct sembuf op;
+    op.sem_num = row * COLS + col;
+    op.sem_flg = 0;
+    op.sem_op = -1;
+
+    if (semop(sems, &op, 1) < 0) {
+        return -1;
+    }
+
     if (write(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
         return -1;
     }
+
+    op.sem_op = 1;
+
+    if (semop(sems, &op, 1) < 0) {
+        return -1;
+    }
+
     return 0;
 }
 
@@ -88,41 +132,55 @@ int seat_get_flag(int ds, int row, int col) {
     off_t offset = (row * COLS + col) * sizeof(Seat);
 
     if (lseek(ds, offset, SEEK_SET) == (off_t)-1) {
-        printf("errore lseek \n");
         return -1;
     }
+
+    struct sembuf buf;
+    buf.sem_flg = 0;
+    buf.sem_num = row * COLS + col;
+    buf.sem_op = -1;
+
+    if(semop(sems, &buf, 0) < 0){
+        return -1;
+    }
+
     ssize_t bytes_letti = read(ds, &s, sizeof(Seat));
 
+    buf.sem_op = 1;
+
+    if(semop(sems, &buf, 0) < 0){
+        return -1;
+    }
+
     if (bytes_letti != sizeof(Seat)) {
-        printf("errore byte letti \n");
         return -1;
     }
 
     return s.flag;
 }
 
+int set_all_flag_from_nbook(int ds, int flag, int nbook) {
 
-
-int set_all_flag_from_nbook(int ds, int flag, int nbook)
-{
-
-    
     Seat s;
 
     lseek(ds, 0, SEEK_SET);
-    
 
-    for (int i = 0; i < ROWS*COLS; i++)
-    {
+    struct sembuf buf;
+    buf.sem_flg = 0;
+    
+    for (int i = 0; i < ROWS * COLS; i++) {
         off_t offset = i * sizeof(Seat);
+
+        buf.sem_num = i;
+        buf.sem_op = -1;
+
 
         if (read(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
             return -1;
         }
 
-        if(s.nbook==nbook)
-        {
-            s.flag= flag;
+        if (s.nbook == nbook) {
+            s.flag = flag;
 
             if (flag == 0) {
                 s.nbook = 0;
@@ -135,7 +193,13 @@ int set_all_flag_from_nbook(int ds, int flag, int nbook)
             if (write(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
                 return -1;
             }
+    
+        }
 
+        buf.sem_op = 1;
+
+        if(semop(sems, &buf, 0)<0){
+            return -1;
         }
     }
     return 0;
