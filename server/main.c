@@ -42,6 +42,7 @@ typedef struct {
  * 5) seat not bookable (questo posto non risulta prenotabile)
  * 6) confirm book (conferma la prenotazione)
  * 7) cancell book (rimuove tutti i posti di una prenotazione)
+ * 8) send booknumber (usato dal server per comunicare al client il codice di prenotazione)
  */
 
 int new_book_number() {
@@ -61,7 +62,7 @@ void *connection_handler(void *arg) {
     }
 
     // associo al client un codice di prenotazione
-    int booknumber = new_book_number();
+    unsigned int booknumber = new_book_number();
 
     SocketMessagePreamble req;
     ssize_t read_size;
@@ -71,7 +72,7 @@ void *connection_handler(void *arg) {
 
         if (read_size == 0) {
             printf("Client disconnected! \n");
-            
+
             // rilascio tutti i posti che quel cliente stava prenotando
             set_all_flag_from_nbook(fd, 0, booknumber);
 
@@ -152,6 +153,32 @@ void *connection_handler(void *arg) {
 
                 break;
             }
+            case 6: {
+                // confermo la prenotazione
+                set_all_flag_from_nbook(fd, 2, booknumber);
+
+                // creo un nuovo codice prenotazione
+                booknumber = new_book_number();
+
+                SocketMessagePreamble res;
+                res.code = htons(8);
+                res.row = 0;
+                res.col = 0;
+                res.booknumber = booknumber;
+                res.dim = 0;
+
+                if (send(client_sock, &res, sizeof(res), 0) < 0) {
+                    printf("Error: send response (8) \n");
+                    continue;
+                }
+
+                break;
+            }
+            case 7: {
+                // cancello una prenotazione
+                set_all_flag_from_nbook(fd, 0, booknumber);
+                break;
+            }
             default:
                 break;
             }
@@ -212,7 +239,8 @@ int main(int argc, char const *argv[]) {
     }
 
     unsigned short valori[ROWS * COLS];
-    for (int i = 0; i < ROWS * COLS; i++) valori[i] = 1;
+    for (int i = 0; i < ROWS * COLS; i++)
+        valori[i] = 1;
 
     union semun argomento;
     argomento.array = valori;

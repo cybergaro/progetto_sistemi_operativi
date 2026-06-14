@@ -35,11 +35,12 @@ typedef struct {
  * 4) reserved seat (il posto ora ha il flag di prenotazine pending f=1)
  * 5) seat not bookable (questo posto non risulta prenotabile)
  * 6) confirm book (conferma la prenotazione)
+ * 7) cancell book (rimuove tutti i posti di una prenotazione)
+ * 8) send booknumber (usato dal server per comunicare al client il codice di prenotazione)
  */
 
 int socket_des;
 unsigned short int map[ROWS][COLS]; // matrice che rappresenta lo stato di occupazione dei posti
-int booknumber = 0;
 
 void new_book() {
     SocketMessagePreamble req;
@@ -48,7 +49,7 @@ void new_book() {
     req.row = 0;
     req.col = 0;
     req.dim = 0;
-    req.booknumber = booknumber;
+    req.booknumber = 0;
 
     if (send(socket_des, &req, sizeof(req), 0) < 0) {
         printf("Error: request of cinema map not found \n");
@@ -126,19 +127,47 @@ void new_book() {
 
             recv(socket_des, &res, sizeof(res), 0);
 
-            if(ntohs(res.code) == 5){
+            if (ntohs(res.code) == 5) {
                 printf("Error: this seat is alredy taken \n");
                 continue;
-            }else if(ntohs(res.code) == 4){
+            } else if (ntohs(res.code) == 4) {
 
                 map[lettera - 'A'][numero - 1] = 1;
-                
+
                 valido = 1;
             }
         }
 
         // eseguo operazioni per comunicare al server il posto che si è selezionato
         valido = 0;
+    }
+
+    req.row = 0;
+    req.col = 0;
+    req.dim = 0;
+
+    if (option == 1) {
+        req.code = htons(6);
+
+        if (send(socket_des, &req, sizeof(req), 0) < 0) {
+            printf("Error: send confirm book \n");
+            return;
+        }
+
+        if (recv(socket_des, &res, sizeof(res), 0) < 0) {
+            printf("Error: during reciving \n");
+            return;
+        }
+
+        printf("codice di conferma prenotazione-> %d \n", res.booknumber);
+
+    } else if (option == 0) { // caso in cui l'utente vuole annullare
+        req.code = htons(7);
+
+        if (send(socket_des, &req, sizeof(req), 0) < 0) {
+            printf("Error: send cancel book \n");
+            return;
+        }
     }
 }
 
