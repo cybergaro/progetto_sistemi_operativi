@@ -90,7 +90,7 @@ int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS], short int mask, 
     return 0;
 }
 
-int seat_set_flag(int ds, int row, int col, int flag_s, int nbook_v) {
+int seat_set_flag(int ds, int row, int col, int flag_s, int nbook_v) { // da sola non garantisce atomicità
 
     Seat s;
     s.flag = flag_s;
@@ -108,61 +108,30 @@ int seat_set_flag(int ds, int row, int col, int flag_s, int nbook_v) {
         exit(EXIT_FAILURE);
     }
 
-    struct sembuf op;
-    op.sem_num = row * COLS + col;
-    op.sem_flg = 0;
-    op.sem_op = -1;
-
-    if (semop(sems, &op, 1) < 0) {
-        printf("Error on semop seat_set_flag \n");
-        fflush(stdout);
-        exit(EXIT_FAILURE);
-    }
-
     if (write(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
         printf("Error on writing seat_set_flag \n");
         fflush(stdout);
         exit(EXIT_FAILURE);   
     }
 
-    op.sem_op = 1;
-
-    if (semop(sems, &op, 1) < 0) {
-        printf("Error on semop seat_set_flag \n");
-        fflush(stdout);
-        exit(EXIT_FAILURE);
-    }
 
     fdatasync(ds);
 
     return 0;
 }
 
-int seat_get_flag(int ds, int row, int col) {
+int seat_get_flag(int ds, int row, int col) { // da sola non garantisce atomicità
     Seat s;
 
     off_t offset = (row * COLS + col) * sizeof(Seat);
 
     if (lseek(ds, offset, SEEK_SET) == (off_t)-1) {
-        return -1;
-    }
-
-    struct sembuf buf;
-    buf.sem_flg = 0;
-    buf.sem_num = row * COLS + col;
-    buf.sem_op = -1;
-
-    if (semop(sems, &buf, 1) < 0) {
-        return -1;
+        printf("error lseek seat_get_flat \n");
+        fflush(stdout);
+        exit(EXIT_FAILURE);
     }
 
     ssize_t bytes_letti = read(ds, &s, sizeof(Seat));
-
-    buf.sem_op = 1;
-
-    if (semop(sems, &buf, 1) < 0) {
-        return -1;
-    }
 
     if (bytes_letti != sizeof(Seat)) {
         return -1;

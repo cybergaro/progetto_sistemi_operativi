@@ -123,6 +123,17 @@ void *connection_handler(void *arg) {
                 int row = ntohs(req.row);
                 int col = ntohs(req.col);
 
+                struct sembuf buf;
+                buf.sem_flg = 0;
+                buf.sem_num = row * COLS + col;
+                buf.sem_op = -1;
+
+                if (semop(sems, &buf, 1) < 0) {
+                    printf("Error semop\n");
+                    fflush(stdout);
+                    exit(EXIT_FAILURE);
+                }
+
                 int flag = seat_get_flag(fd, row, col);
                 if (flag < 0) {
                     printf("Error: seat get flag \n");
@@ -146,12 +157,20 @@ void *connection_handler(void *arg) {
                     res.code = htons(5);
                 }
 
+                buf.sem_op = 1;
+
+                if (semop(sems, &buf, 1) < 0) {
+                    printf("Error semop\n");
+                    fflush(stdout);
+                    exit(EXIT_FAILURE);
+                }
+
                 if (send(client_sock, &res, sizeof(res), 0) < 0) {
                     printf("Error: send response (4/5)\n");
                     continue;
                 }
 
-                printf("Seat %c%d is pendign for %d\n", row + 'A', col+1, booknumber);
+                printf("Seat %c%d is pendign for %d\n", row + 'A', col + 1, booknumber);
 
                 break;
             }
