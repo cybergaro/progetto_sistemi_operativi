@@ -5,6 +5,8 @@
 #include <sys/sem.h>
 #include <unistd.h>
 
+#include <stdio.h>
+
 int create_map(char *fname) {
     int fd = open(fname, O_RDWR, 0644);
 
@@ -39,7 +41,7 @@ int create_map(char *fname) {
 
 // questa funzione permette di avere una lista dei flag dei vari posti del cinema
 // il parametro mask permete di fare in modo che tutti i flag diversi da 0 siano portati a 2 in
-// modo che tutti i client sappiano che quel posto non è disponibile, 
+// modo che tutti i client sappiano che quel posto non è disponibile,
 // a meno di quelli che hano un certo numero di prenotazione specificato in nbook
 
 int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS], short int mask, int nbook) {
@@ -51,7 +53,7 @@ int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS], short int mask, 
     struct sembuf op;
     op.sem_flg = 0;
 
-    Seat p;  
+    Seat p;
     for (int r = 0; r < ROWS; r++) {
         for (int c = 0; c < COLS; c++) {
 
@@ -74,9 +76,9 @@ int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS], short int mask, 
 
             if (mask == 1) {
                 if (p.flag != 0) {
-                    if(nbook != 0 && p.nbook == nbook){
+                    if (nbook != 0 && p.nbook == nbook) {
                         matrix[r][c] = 1;
-                    }else{
+                    } else {
                         matrix[r][c] = 2;
                     }
                 }
@@ -101,7 +103,9 @@ int seat_set_flag(int ds, int row, int col, int flag_s, int nbook_v) {
     off_t offset = (row * COLS + col) * sizeof(Seat);
 
     if (lseek(ds, offset, SEEK_SET) == (off_t)-1) {
-        return -1;
+        printf("Error on lseek seat_set_flag \n");
+        fflush(stdout);
+        exit(EXIT_FAILURE);
     }
 
     struct sembuf op;
@@ -110,18 +114,26 @@ int seat_set_flag(int ds, int row, int col, int flag_s, int nbook_v) {
     op.sem_op = -1;
 
     if (semop(sems, &op, 1) < 0) {
-        return -1;
+        printf("Error on semop seat_set_flag \n");
+        fflush(stdout);
+        exit(EXIT_FAILURE);
     }
 
     if (write(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
-        return -1;
+        printf("Error on writing seat_set_flag \n");
+        fflush(stdout);
+        exit(EXIT_FAILURE);   
     }
 
     op.sem_op = 1;
 
     if (semop(sems, &op, 1) < 0) {
-        return -1;
+        printf("Error on semop seat_set_flag \n");
+        fflush(stdout);
+        exit(EXIT_FAILURE);
     }
+
+    fdatasync(ds);
 
     return 0;
 }
@@ -140,7 +152,7 @@ int seat_get_flag(int ds, int row, int col) {
     buf.sem_num = row * COLS + col;
     buf.sem_op = -1;
 
-    if(semop(sems, &buf, 0) < 0){
+    if (semop(sems, &buf, 1) < 0) {
         return -1;
     }
 
@@ -148,7 +160,7 @@ int seat_get_flag(int ds, int row, int col) {
 
     buf.sem_op = 1;
 
-    if(semop(sems, &buf, 0) < 0){
+    if (semop(sems, &buf, 1) < 0) {
         return -1;
     }
 
@@ -163,44 +175,63 @@ int set_all_flag_from_nbook(int ds, int flag, int nbook) {
 
     Seat s;
 
-    lseek(ds, 0, SEEK_SET);
+    if (lseek(ds, 0, SEEK_SET) < 0) {
+        printf("Error lseek \n");
+        fflush(stdout);
+        return -1;
+    }
 
     struct sembuf buf;
     buf.sem_flg = 0;
-    
+
     for (int i = 0; i < ROWS * COLS; i++) {
-        off_t offset = i * sizeof(Seat);
 
         buf.sem_num = i;
         buf.sem_op = -1;
 
+        if (semop(sems, &buf, 1) < 0) {
+            printf("Semop error \n");
+            fflush(stdout);
+            return -1;
+        }
 
         if (read(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
             return -1;
         }
 
         if (s.nbook == nbook) {
+            printf("corrispondenza trovata \n");
+            fflush(stdout);
+
             s.flag = flag;
 
             if (flag == 0) {
                 s.nbook = 0;
             }
 
-            if (lseek(ds, offset, SEEK_SET) == (off_t)-1) {
+            if (lseek(ds, -sizeof(Seat), SEEK_CUR) == (off_t)-1) {
+                printf("Error lseek \n");
+                fflush(stdout);
                 return -1;
             }
 
             if (write(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
+                printf("Error write \n");
+                fflush(stdout);
                 return -1;
             }
-    
         }
 
         buf.sem_op = 1;
 
-        if(semop(sems, &buf, 0)<0){
+        if (semop(sems, &buf, 1) < 0) {
+            printf("Semop error \n");
+            fflush(stdout);
             return -1;
         }
     }
+    
+    fdatasync(ds);
+
     return 0;
 }

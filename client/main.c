@@ -1,7 +1,8 @@
-#include <ctype.h>
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
 // librerie posix
@@ -13,11 +14,11 @@
 #ifdef GUI
 #include "gui.h"
 #else
-#include "cliview.h"
+#include "utility.h"
 #endif
 
 #define SERVER_ADDR "127.0.0.1"
-#define SERVER_PORT 8081
+#define SERVER_PORT 8080
 
 typedef struct {
     unsigned short code;     // indica il codice della richiesta
@@ -42,111 +43,106 @@ typedef struct {
 int socket_des;
 unsigned short int map[ROWS][COLS]; // matrice che rappresenta lo stato di occupazione dei posti
 
-void new_book() {
-    SocketMessagePreamble req;
+unsigned int get_map(unsigned int booknumber) {  // il valore di ritorno è il booknumber che viene assegnato dal server
+    SocketMessagePreamble req, res;
 
     req.code = htons(1);
     req.row = 0;
     req.col = 0;
     req.dim = 0;
-    req.booknumber = 0;
-
+    req.booknumber = booknumber != 0 ? htonl(booknumber) : 0;
+    
     if (send(socket_des, &req, sizeof(req), 0) < 0) {
         printf("Error: request of cinema map not found \n");
-        return;
+        fflush(stdout);
+        exit(EXIT_FAILURE);
     }
 
-    SocketMessagePreamble res;
-    recv(socket_des, &res, sizeof(res), 0);
+    if (recv(socket_des, &res, sizeof(res), 0) < 0) {
+        printf("Error during recv preamble \n");
+        fflush(stdout);
+        exit(EXIT_FAILURE);
+    }
 
-    recv(socket_des, map, sizeof(map), 0);
+    if(ntohs(res.code) != 2 || ntohl(res.dim) != sizeof(map)){
+        printf("Error the server did not send the map \n");
+        fflush(stdout);
+        exit(EXIT_FAILURE);
+    }
 
-    char input[255];
+    if (recv(socket_des, map, sizeof(map), 0) < 0) {
+        printf("Error during recv of map \n");
+        fflush(stdout);
+        exit(EXIT_FAILURE);
+    }
+
+    return ntohl(res.booknumber);
+}
+
+void new_book() {
+    SocketMessagePreamble req, res;
+
+    unsigned int booknumber = get_map(0);
+
     char lettera;
     int numero;
-    int valido = 0;
+    int code_option;
     int option = -1;
+    int counter_seats = 0; // uso questa variabile per contare quanti posti sono associati alla prenotazione in corso.
 
-    while (option == -1) {
-        printMap(map);
-        // leggo il codice del posto (implemento un sistema che mi permette di leggere stringhe di vari tipi)
-        while (!valido) {
-            printf("Seat identificator (es. A12, A 2, C 15) \nWrite '0' to exit or '1' to confirm-> ");
+// procedura per lettura del posto
+get_seat:
 
-            if (fgets(input, sizeof(input), stdin) == NULL) {
-                printf("Error: fgets\n");
+    printMap(map);
 
-                continue;
-            }
-            input[strcspn(input, "\n")] = '\0';
+redo_get_seat:
 
-            if (strcmp(input, "0") == 0) {
-                option = 0; // esco e non salvo
-                break;
-            }
-            if (strcmp(input, "1") == 0) {
-                option = 1; // esco e salvo
-                break;
-            }
+    // leggo il codice del posto (implemento un sistema che mi permette di leggere stringhe di vari tipi)
+    code_option = getSeatNumber(&numero, &lettera);
+    if (code_option == -1)
+        goto redo_get_seat;
+    else if (code_option == 1 || code_option == 2)
+        goto exit_get_seat;
 
-            char extra[2];
-            int elementi_letti = sscanf(input, " %c %d%1s", &lettera, &numero, extra);
-
-            if (elementi_letti != 2 || !isupper((unsigned char)lettera)) {
-                printf("Error: invalid format\n");
-                continue;
-            }
-
-            // controllo che l'elemento è effettivamente presente nella matrice
-            if (lettera - 'A' < 0 || lettera - 'A' >= ROWS) {
-                printf("Error: Letter out of range \n");
-                continue;
-            }
-            if (numero - 1 < 0 || numero - 1 >= COLS) {
-                printf("Error: Number out of range\n");
-                continue;
-            }
-
-            // controllo che il posto sia libero
-            if (map[lettera - 'A'][numero - 1] == 1) {
-                printf("⚠️ You have already selected this place \n");
-                continue;
-            }
-
-            // chiedo al server se il posto è libero
-            req.code = htons(3);
-            req.row = htons(lettera - 'A');
-            req.col = htons(numero - 1);
-
-            printf("Check if seat is free... \n");
-
-            if (send(socket_des, &req, sizeof(req), 0) < 0) {
-                printf("Error: send of control free seat \n");
-                continue;
-            }
-
-            recv(socket_des, &res, sizeof(res), 0);
-
-            if (ntohs(res.code) == 5) {
-                printf("Error: this seat is alredy taken \n");
-                continue;
-            } else if (ntohs(res.code) == 4) {
-
-                map[lettera - 'A'][numero - 1] = 1;
-
-                valido = 1;
-            }
-        }
-
-        // eseguo operazioni per comunicare al server il posto che si è selezionato
-        valido = 0;
+    // controllo che il posto sia libero
+    if (map[lettera - 'A'][numero - 1] == 1) {
+        printf("⚠️ You have already selected this place \n");
+        goto redo_get_seat;
     }
+
+    // chiedo al server se il posto è libero
+    req.code = htons(3);
+    req.row = htons(lettera - 'A');
+    req.col = htons(numero - 1);
+    req.booknumber = htonl(booknumber);
+
+    printf("Check if seat is free... \n");
+
+    if (send(socket_des, &req, sizeof(req), 0) < 0) {
+        printf("Error: send of control free seat \n");
+        goto redo_get_seat;
+    }
+
+    recv(socket_des, &res, sizeof(res), 0);
+
+    if (ntohs(res.code) == 5) {
+        printf("Error: this seat is alredy taken \n");
+        goto redo_get_seat;
+    } else if (ntohs(res.code) == 4) { // l'assegnazione temporanea del posto è andata a buon fine
+        map[lettera - 'A'][numero - 1] = 1;
+        counter_seats++;
+    }
+
+    goto get_seat;
+
+exit_get_seat:
 
     req.row = 0;
     req.col = 0;
     req.dim = 0;
+    req.booknumber = htonl(booknumber);
 
-    if (option == 1) {
+    if (code_option == 1) {
         req.code = htons(6);
 
         if (send(socket_des, &req, sizeof(req), 0) < 0) {
@@ -159,9 +155,16 @@ void new_book() {
             return;
         }
 
-        printf("codice di conferma prenotazione-> %d \n", res.booknumber);
+        printf("Codice di conferma prenotazione-> %d \n", res.booknumber);
 
-    } else if (option == 0) { // caso in cui l'utente vuole annullare
+        HistoryRecord record;
+        record.nseats = counter_seats;
+        record.booknumber = res.booknumber;
+        record.time = time(NULL);
+
+        saveToHistory(&record);
+
+    } else if (code_option == 2) { // caso in cui l'utente vuole annullare
         req.code = htons(7);
 
         if (send(socket_des, &req, sizeof(req), 0) < 0) {
@@ -196,17 +199,20 @@ int main(int argc, char const *argv[]) {
 
     printf("Connected to the server ✅\n");
 
+    printf("Open history file \n");
+
+    history_des = open(HISTORY_NAME, O_CREAT | O_RDWR, 0666);
+
     printf("Setup complete ✅\n");
 
     char buffer[255];
     int op; // codice dell'operazione selezionato dall'utente all'interno del menu
 
-    printf("Options: \n0) 📤 Exit \n1) 🆕 New booking  \n2) 🔧 Manage old booking \n");
-    fflush(stdout);
+    printMenu();
 
     while (1) {
-        fflush(stdout);
         printf("-> ");
+        fflush(stdout);
 
         fgets(buffer, sizeof(buffer), stdin);
         sscanf(buffer, "%d", &op); // estraggo il codice dell'operazione
@@ -219,10 +225,15 @@ int main(int argc, char const *argv[]) {
 
         case 1:
             new_book();
+
+            // alla fine ripulisco il terminale e ristampo il menu
+            system("clear");
+            printMenu();
+
             break;
 
         case 2:
-            printReservations();
+            printHistory();
             break;
 
         default:

@@ -1,5 +1,5 @@
 posix:
-	gcc main.c cliview.c -DPosix_compile -lpthread
+	gcc main.c utility.c -DPosix_compile -lpthread
 
 # compilazione su MACOS con interfaccia grafica
 macos-gui:

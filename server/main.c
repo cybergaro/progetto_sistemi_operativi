@@ -15,7 +15,7 @@
 #include <sys/types.h>
 
 #define BACKLOG 10
-#define PORT 8081
+#define PORT 8080
 
 #define NAME_FILE_MAP "cinema_map.bin"
 
@@ -72,6 +72,7 @@ void *connection_handler(void *arg) {
 
         if (read_size == 0) {
             printf("Client disconnected! \n");
+            fflush(stdout);
 
             // rilascio tutti i posti che quel cliente stava prenotando
             set_all_flag_from_nbook(fd, 0, booknumber);
@@ -84,11 +85,12 @@ void *connection_handler(void *arg) {
         } else if (read_size == sizeof(req)) { // dati ricevuti correttamente
             int req_code = ntohs(req.code);
 
-            if (req.booknumber != 0) { // aggiorno il codice di prenotazione
+            if (ntohl(req.booknumber) != 0) { // aggiorno il codice di prenotazione
                 booknumber = ntohl(req.booknumber);
             }
 
             printf("request code-> %d \n", req_code);
+            fflush(stdout);
 
             switch (req_code) {
             case 1: { // richiesta della mappa dei posti
@@ -149,7 +151,7 @@ void *connection_handler(void *arg) {
                     continue;
                 }
 
-                printf("Seat %c%d is pendign for %d\n", row + 'A', col, booknumber);
+                printf("Seat %c%d is pendign for %d\n", row + 'A', col+1, booknumber);
 
                 break;
             }
@@ -176,7 +178,12 @@ void *connection_handler(void *arg) {
             }
             case 7: {
                 // cancello una prenotazione
+                printf("Sto pulendo la cache della prenotazione %d\n", booknumber);
+                fflush(stdout);
+
                 set_all_flag_from_nbook(fd, 0, booknumber);
+                booknumber = new_book_number();
+
                 break;
             }
             default:
