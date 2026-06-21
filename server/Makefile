@@ -1,2 +1,2 @@
 posix:
-	gcc main.c filemanager/unixfilemanager.c -lpthread -DPosix_compile
+	gcc main.c filemanager/unixfilemanager.c socketmanagment/socketmanagment.c utility/utility.c -lpthread -DPosix_compile

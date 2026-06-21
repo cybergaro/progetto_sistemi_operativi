@@ -1,3 +1,5 @@
+#include "utility/utility.h"
+#include "socketmanagment/socketmanagment.h"
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
@@ -45,9 +47,6 @@ typedef struct {
  * 8) send booknumber (usato dal server per comunicare al client il codice di prenotazione)
  */
 
-int new_book_number() {
-    return (int)time(NULL);
-}
 
 void *connection_handler(void *arg) {
     struct connection_handler_arg *data = (struct connection_handler_arg *)arg;
@@ -76,6 +75,9 @@ void *connection_handler(void *arg) {
 
             // rilascio tutti i posti che quel cliente stava prenotando
             set_all_flag_from_nbook(fd, 0, booknumber);
+
+            // rimuovo il socket dalla lista 
+            remove_client(client_sock);
 
             close(fd);
             return NULL;
@@ -205,6 +207,7 @@ void *connection_handler(void *arg) {
 
                 break;
             }
+
             default:
                 break;
             }
@@ -247,6 +250,8 @@ int main(int argc, char const *argv[]) {
         printf("Error: listen not found");
         exit(EXIT_FAILURE);
     }
+
+    init_client_list();  // inizializzo un area di memoria dinamica dedicata al salvataggio dei socket id
 
     printf("File setup \n");
 
@@ -306,6 +311,8 @@ int main(int argc, char const *argv[]) {
         }
 
         printf("New connection \n");
+
+        add_client(new_socket); // aggiungo il socket che si è creato alla lista
 
         struct connection_handler_arg *arg = malloc(sizeof(struct connection_handler_arg));
         arg->socket_id = new_socket;
