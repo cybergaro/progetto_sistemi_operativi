@@ -1,5 +1,5 @@
-#include "utility/utility.h"
 #include "socketmanagment/socketmanagment.h"
+#include "utility/utility.h"
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
@@ -47,10 +47,11 @@ typedef struct {
  * 8) send booknumber (usato dal server per comunicare al client il codice di prenotazione)
  */
 
-
 void *connection_handler(void *arg) {
     struct connection_handler_arg *data = (struct connection_handler_arg *)arg;
     int client_sock = data->socket_id;
+
+    free(data);
 
     // creo una nuova sessione sul file
     int fd = open(NAME_FILE_MAP, O_RDWR, 0644);
@@ -76,7 +77,7 @@ void *connection_handler(void *arg) {
             // rilascio tutti i posti che quel cliente stava prenotando
             set_all_flag_from_nbook(fd, 0, booknumber);
 
-            // rimuovo il socket dalla lista 
+            // rimuovo il socket dalla lista
             remove_client(client_sock);
 
             close(fd);
@@ -125,16 +126,7 @@ void *connection_handler(void *arg) {
                 int row = ntohs(req.row);
                 int col = ntohs(req.col);
 
-                struct sembuf buf;
-                buf.sem_flg = 0;
-                buf.sem_num = row * COLS + col;
-                buf.sem_op = -1;
-
-                if (semop(sems, &buf, 1) < 0) {
-                    printf("Error semop\n");
-                    fflush(stdout);
-                    exit(EXIT_FAILURE);
-                }
+                pthread_mutex_lock(&seat_mutexes[row * COLS + col]);
 
                 int flag = seat_get_flag(fd, row, col);
                 if (flag < 0) {
@@ -159,13 +151,7 @@ void *connection_handler(void *arg) {
                     res.code = htons(5);
                 }
 
-                buf.sem_op = 1;
-
-                if (semop(sems, &buf, 1) < 0) {
-                    printf("Error semop\n");
-                    fflush(stdout);
-                    exit(EXIT_FAILURE);
-                }
+                pthread_mutex_unlock(&seat_mutexes[row * COLS + col]);
 
                 if (send(client_sock, &res, sizeof(res), 0) < 0) {
                     printf("Error: send response (4/5)\n");
@@ -251,7 +237,7 @@ int main(int argc, char const *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    init_client_list();  // inizializzo un area di memoria dinamica dedicata al salvataggio dei socket id
+    init_client_list(); // inizializzo un area di memoria dinamica dedicata al salvataggio dei socket id
 
     printf("File setup \n");
 
@@ -260,25 +246,13 @@ int main(int argc, char const *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    printf("Semaphore setup \n");
+    printf("Mutex setup \n");
 
-    sems = semget(IPC_PRIVATE, ROWS * COLS, IPC_CREAT | 0666);
-
-    if (sems < 1) {
-        printf("Error: creation of semaphore \n");
-        exit(EXIT_FAILURE);
-    }
-
-    unsigned short valori[ROWS * COLS];
-    for (int i = 0; i < ROWS * COLS; i++)
-        valori[i] = 1;
-
-    union semun argomento;
-    argomento.array = valori;
-
-    if (semctl(sems, 0, SETALL, argomento) == -1) {
-        printf("Error: initialization of semaphores \n");
-        exit(EXIT_FAILURE);
+    for (int i = 0; i < ROWS * COLS; i++) {
+        if (pthread_mutex_init(&seat_mutexes[i], NULL) != 0) {
+            printf("Error: initialization of mutex %d \n", i);
+            exit(EXIT_FAILURE);
+        }
     }
 
     printf("Defining the management of signals\n");

@@ -1,10 +1,12 @@
 #ifndef UNIXFILEMANAGER
 #define UNIXFILEMANAGER
 
+#include <pthread.h>
+
 #define ROWS 10
 #define COLS 15
 
-int sems; // semafori per la gestione dei file
+pthread_mutex_t seat_mutexes[ROWS * COLS];  // mutex per la gestione del file
 
 typedef struct {
     unsigned short int flag;

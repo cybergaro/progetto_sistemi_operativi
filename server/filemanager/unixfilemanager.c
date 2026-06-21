@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/sem.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include <stdio.h>
 
@@ -50,29 +51,18 @@ int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS], short int mask, 
         return -1;
     }
 
-    struct sembuf op;
-    op.sem_flg = 0;
-
     Seat p;
     for (int r = 0; r < ROWS; r++) {
         for (int c = 0; c < COLS; c++) {
 
-            op.sem_num = r * COLS + c;
-            op.sem_op = -1;
-
-            if (semop(sems, &op, 1) == -1) {
-                return -1;
-            }
+            pthread_mutex_lock(&seat_mutexes[r * COLS + c]);
 
             ssize_t bytes_read = read(ds, &p, sizeof(Seat));
             if (bytes_read != sizeof(Seat)) {
                 return -1;
             }
 
-            op.sem_op = 1;
-            if (semop(sems, &op, 1) == -1) {
-                return -1;
-            }
+            pthread_mutex_unlock(&seat_mutexes[r * COLS + c]);
 
             if (mask == 1) {
                 if (p.flag != 0) {
@@ -150,19 +140,9 @@ int set_all_flag_from_nbook(int ds, int flag, int nbook) {
         return -1;
     }
 
-    struct sembuf buf;
-    buf.sem_flg = 0;
-
     for (int i = 0; i < ROWS * COLS; i++) {
 
-        buf.sem_num = i;
-        buf.sem_op = -1;
-
-        if (semop(sems, &buf, 1) < 0) {
-            printf("Semop error \n");
-            fflush(stdout);
-            return -1;
-        }
+        pthread_mutex_lock(&seat_mutexes[i]);
 
         if (read(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
             return -1;
@@ -188,13 +168,7 @@ int set_all_flag_from_nbook(int ds, int flag, int nbook) {
             }
         }
 
-        buf.sem_op = 1;
-
-        if (semop(sems, &buf, 1) < 0) {
-            printf("Semop error \n");
-            fflush(stdout);
-            return -1;
-        }
+        pthread_mutex_unlock(&seat_mutexes[i]);
     }
     
     fdatasync(ds);
