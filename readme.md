@@ -1,36 +1,23 @@
-# 📽️🍿 Sistema di Prenotazione Posti Cinema
+Progetto SO Francesco Garofolo && Flavio Favero
+# Sistema di prenotazione posti 📽️🍿
+## Consegna
+Realizzazione di un sistema di prenotazione posti per una sala
+cinematografica. Un processo su una macchina server gestisce una mappa di
+posti per una sala cinematografica. Ciascun posto e' caratterizzato da un
+numero di fila, un numero di poltrona ed un FLAG indicante se il posto
+e' gia' stato prenotato o meno.
+Il server accetta e processa le richieste di prenotazione
+di posti da uno o piu' client (residenti, in generale, su macchine diverse).
+Un client deve fornire ad un utente le seguenti funzioni:
+- Visualizzare la mappa dei posti in modo da individuare quelli ancora
+disponibili.
+- Inviare al server l'elenco dei posti che si intende prenotare (ciascun
+posto da prenotare viene ancora identificato tramite numero di fila e numero di
+poltrona).
+- Attendere dal server la conferma di effettuata prenotazione ed un codice di prenotazione.
+- Disdire una prenotazione per cui si possiede un codice.
 
-Sistema **client-server concorrente** per la gestione e prenotazione in tempo reale dei posti in una sala cinematografica.
+Si precisa che lo studente e' tenuto a realizzare sia il client che il
+server.
 
-- 🏛️ **150 posti** — 10 file (`A`–`J`) × 15 colonne
-- 🔀 **Multithreading POSIX** — gestione simultanea di più client
-- 🔒 **Fine-grained locking** — mutex per singolo posto, massimo parallelismo
-- 🖥️ **Doppia interfaccia client** — CLI con ANSI colors e GUI GTK4
-- 🌐 **Comunicazione TCP** — protocollo binario custom con byte ordering
-
----
-
-## 📖 Documentazione
-
-Per l'architettura completa, il protocollo di comunicazione, i meccanismi di sincronizzazione e la guida alla compilazione, consulta:
-
-### 👉 [DOCS.md](./DOCS.md)
-
----
-
-## ⚡ Quick Start
-
-**Server:**
-```bash
-cd server && make posix && ./a.out
-```
-
-**Client CLI:**
-```bash
-cd client && make posix && ./a.out
-```
-
-**Client GUI (GTK4):**
-```bash
-cd client && make macos-gui && ./a.out
-```
+Il server deve poter gestire le richieste dei client in modo concorrente.                   
