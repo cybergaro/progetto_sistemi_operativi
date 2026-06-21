@@ -17,7 +17,7 @@ typedef struct{
 } HistoryRecord;
 
 void printMenu();
-void printMap(unsigned short int map[ROWS][COLS]);
+void printMap(unsigned short int map[ROWS][COLS], unsigned int booknumber);
 int getSeatNumber(int *numero, char *lettera);
 void printHistory(void);
 void saveToHistory(HistoryRecord *record);

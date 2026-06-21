@@ -93,7 +93,7 @@ void new_book() {
 // procedura per lettura del posto
 get_seat:
 
-    printMap(map);
+    printMap(map, booknumber);
 
 redo_get_seat:
 

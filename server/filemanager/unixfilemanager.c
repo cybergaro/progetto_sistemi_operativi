@@ -200,9 +200,6 @@ int set_all_flag_from_nbook(int ds, int flag, int nbook) {
         }
 
         if (s.nbook == nbook) {
-            printf("corrispondenza trovata \n");
-            fflush(stdout);
-
             s.flag = flag;
 
             if (flag == 0) {

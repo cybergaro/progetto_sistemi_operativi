@@ -19,7 +19,7 @@ void printMenu() {
     fflush(stdout);
 }
 
-void printMap(unsigned short int map[ROWS][COLS]) {
+void printMap(unsigned short int map[ROWS][COLS], unsigned int booknumber) {
     system("clear");
 
     char buffer[4096];
@@ -27,7 +27,8 @@ void printMap(unsigned short int map[ROWS][COLS]) {
 
     char *ptr = buffer;
 
-    ptr += sprintf(ptr, "\n\n========================================= SCHERMO =========================================\n\n");
+    ptr += sprintf(ptr, "\nBooknumber: \033[1;33m%u\033[0m\n", booknumber);
+    ptr += sprintf(ptr, "\n========================================= SCREEN =========================================\n\n");
 
     for (int i = 0; i < ROWS; i++) {
         for (int j = 0; j < COLS; j++) {
