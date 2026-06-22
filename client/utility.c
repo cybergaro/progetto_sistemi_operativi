@@ -105,6 +105,7 @@ int getSeatNumber(int *numero, char *lettera) {
 }
 
 void printHistory() {
+    system("clear");
 
     lseek(history_des, 0, SEEK_SET);
 

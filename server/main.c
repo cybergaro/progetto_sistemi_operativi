@@ -62,7 +62,7 @@ void *connection_handler(void *arg) {
     }
 
     // associo al client un codice di prenotazione
-    unsigned int booknumber = new_book_number();
+    unsigned int booknumber;
 
     SocketMessagePreamble req;
     ssize_t read_size;
@@ -75,7 +75,7 @@ void *connection_handler(void *arg) {
             fflush(stdout);
 
             // rilascio tutti i posti che quel cliente stava prenotando
-            set_all_flag_from_nbook(fd, 0, booknumber);
+            set_all_flag_from_nbook(fd, 3, booknumber); 
 
             // rimuovo il socket dalla lista
             remove_client(client_sock);
@@ -88,8 +88,10 @@ void *connection_handler(void *arg) {
         } else if (read_size == sizeof(req)) { // dati ricevuti correttamente
             int req_code = ntohs(req.code);
 
-            if (ntohl(req.booknumber) != 0) { // aggiorno il codice di prenotazione
+            if (ntohl(req.booknumber) != 0) { // se nella richiesta c'è un codice di prenotazione uso quello
                 booknumber = ntohl(req.booknumber);
+            } else { // se nella richiesta non c'è un codice di prenotazione ne genero uno nuovo
+                booknumber = new_book_number();
             }
 
             printf("request code-> %d \n", req_code);
@@ -102,6 +104,9 @@ void *connection_handler(void *arg) {
                     printf("Error: Get all map flag \n");
                     continue;
                 }
+
+                printf("codice di riferimento-> %d \n", booknumber);
+                fflush(stdout);
 
                 SocketMessagePreamble res;
                 res.code = htons(2);
@@ -166,8 +171,7 @@ void *connection_handler(void *arg) {
                 // confermo la prenotazione
                 set_all_flag_from_nbook(fd, 2, booknumber);
 
-                // creo un nuovo codice prenotazione
-                booknumber = new_book_number();
+                printf("confermo la prenotazione %d\n", booknumber);
 
                 SocketMessagePreamble res;
                 res.code = htons(8);
@@ -189,7 +193,6 @@ void *connection_handler(void *arg) {
                 fflush(stdout);
 
                 set_all_flag_from_nbook(fd, 0, booknumber);
-                booknumber = new_book_number();
 
                 break;
             }

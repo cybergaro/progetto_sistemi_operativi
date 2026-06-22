@@ -43,7 +43,7 @@ typedef struct {
 int socket_des;
 unsigned short int map[ROWS][COLS]; // matrice che rappresenta lo stato di occupazione dei posti
 
-unsigned int get_map(unsigned int booknumber) {  // il valore di ritorno è il booknumber che viene assegnato dal server
+unsigned int get_map(unsigned int booknumber) { // il valore di ritorno è il booknumber che viene assegnato dal server
     SocketMessagePreamble req, res;
 
     req.code = htons(1);
@@ -51,7 +51,7 @@ unsigned int get_map(unsigned int booknumber) {  // il valore di ritorno è il b
     req.col = 0;
     req.dim = 0;
     req.booknumber = booknumber != 0 ? htonl(booknumber) : 0;
-    
+
     if (send(socket_des, &req, sizeof(req), 0) < 0) {
         printf("Error: request of cinema map not found \n");
         fflush(stdout);
@@ -64,7 +64,7 @@ unsigned int get_map(unsigned int booknumber) {  // il valore di ritorno è il b
         exit(EXIT_FAILURE);
     }
 
-    if(ntohs(res.code) != 2 || ntohl(res.dim) != sizeof(map)){
+    if (ntohs(res.code) != 2 || ntohl(res.dim) != sizeof(map)) {
         printf("Error the server did not send the map \n");
         fflush(stdout);
         exit(EXIT_FAILURE);
@@ -159,7 +159,7 @@ exit_get_seat:
 
         HistoryRecord record;
         record.nseats = counter_seats;
-        record.booknumber = res.booknumber;
+        record.booknumber = booknumber;
         record.time = time(NULL);
 
         saveToHistory(&record);
@@ -172,6 +172,42 @@ exit_get_seat:
             return;
         }
     }
+}
+
+void manage_old_book() {
+    printHistory();
+
+    char buff[255];
+    unsigned int booknumber = 0;
+
+get_book_number:
+    printf("Book Number (0 to cancell) -> ");
+    fflush(stdout);
+    if (fgets(buff, sizeof(buff), stdin) < 0) {
+        printf("Error fgets manage_old_book \n");
+        fflush(stdout);
+        exit(EXIT_FAILURE);
+    }
+
+    booknumber = strtol(buff, 0, 10);
+
+    if(booknumber == 0){
+        return;
+    }
+    
+    // qui faccio una verifica per capire se il codice di prenotazione inserito è un codice valido,
+    // ma questa verifica dovrebbe variare a seconda di come viene generato il codice
+    if (booknumber < 1782050448) {
+        printf("⚠️ Invalid Book Number \n");
+        fflush(stdout);
+        goto get_book_number;
+    }
+
+    printf("Load book... \n");
+    fflush(stdout);
+
+    get_map(booknumber);
+    printMap(map, booknumber);
 }
 
 int main(int argc, char const *argv[]) {
@@ -233,7 +269,11 @@ int main(int argc, char const *argv[]) {
             break;
 
         case 2:
-            printHistory();
+            manage_old_book();
+            
+            // alla fine ripulisco il terminale e ristampo il menu
+            // system("clear");
+            printMenu();
             break;
 
         default:

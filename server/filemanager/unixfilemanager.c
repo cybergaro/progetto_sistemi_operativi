@@ -130,7 +130,7 @@ int seat_get_flag(int ds, int row, int col) { // da sola non garantisce atomicit
     return s.flag;
 }
 
-int set_all_flag_from_nbook(int ds, int flag, int nbook) {
+int set_all_flag_from_nbook(int ds, int flag, int nbook) { // impostando flag = 3 si fa una pulizia della cache, quindi si portano a 0 tutti quelli impostati a 1
 
     Seat s;
 
@@ -148,8 +148,13 @@ int set_all_flag_from_nbook(int ds, int flag, int nbook) {
             return -1;
         }
 
-        if (s.nbook == nbook) {
-            s.flag = flag;
+        if (s.nbook == nbook && !(flag == 3 && s.flag != 1)) {
+            
+            if(flag == 3){ // se devo pulire la cache allora il flag è 0
+                s.flag = 0;
+            }else{
+                s.flag = flag;
+            }
 
             if (flag == 0) {
                 s.nbook = 0;
