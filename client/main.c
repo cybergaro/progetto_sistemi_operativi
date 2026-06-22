@@ -208,6 +208,32 @@ get_book_number:
 
     get_map(booknumber);
     printMap(map, booknumber);
+
+get_old_book_opcode:
+    printf("1 to delete book, 0 to cancell \n");
+    fflush(stdout);
+
+    if (fgets(buff, sizeof(buff), stdin) < 0) {
+        printf("Error fgets manage_old_book \n");
+        fflush(stdout);
+        exit(EXIT_FAILURE);
+    }
+
+    int opcode = strtol(buff, 0, 10);
+    if(opcode < 0 || opcode > 1){
+        printf("Invalid operation \n");
+        fflush(stdout);
+        goto get_old_book_opcode;
+    }
+
+
+    if(opcode == 0){
+        return;
+    }
+
+    if(opcode == 1){ // cancello la prenotazione
+
+    }
 }
 
 int main(int argc, char const *argv[]) {
