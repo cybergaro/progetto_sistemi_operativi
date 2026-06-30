@@ -71,6 +71,27 @@ void send_brodcast_message(void *message, int message_size, int client_sock) {
     pthread_mutex_unlock(&clients_mutex);
 }
 
+void create_multiple_delete_socket_messages(int *modified_seats, int num_modified, int client_sock) { // uso questa funzione per creare dei messaggi broadcast multipli per segnalare che si sono liberati più posti
+    SocketMessagePreamble res;
+    res.code = htons(10);
+    res.short_data = 0; // indico che il posto si è liberato
+    res.booknumber = 0;
+    res.dim = 0;
+    
+    int row;
+    int col;
+
+    for (int x = 0; x < num_modified; x++) {
+        col = modified_seats[x]%COLS;
+        row = (modified_seats[x]-col)/COLS;
+        
+        res.row = htons(row);
+        res.col = htons(col);
+
+        send_brodcast_message(&res, sizeof(res), client_sock);
+    }
+}
+
 void *connection_handler(void *arg) {
     struct connection_handler_arg *data = (struct connection_handler_arg *)arg;
     int client_sock = data->socket_id;
@@ -99,7 +120,14 @@ void *connection_handler(void *arg) {
             fflush(stdout);
 
             // rilascio tutti i posti che quel cliente stava prenotando
-            set_all_flag_from_nbook(fd, 3, booknumber);
+            int *modified_seats = NULL;
+            int change_counter;
+
+            set_all_flag_from_nbook(fd, 3, booknumber, &modified_seats, &change_counter);
+
+            create_multiple_delete_socket_messages(modified_seats, change_counter, client_sock);
+
+            free(modified_seats);
 
             // rimuovo il socket dalla lista
             remove_client(client_sock);
@@ -128,9 +156,6 @@ void *connection_handler(void *arg) {
                     printf("Error: Get all map flag \n");
                     continue;
                 }
-
-                printf("codice di riferimento-> %d \n", booknumber);
-                fflush(stdout);
 
                 SocketMessagePreamble res;
                 res.code = htons(2);
@@ -178,6 +203,9 @@ void *connection_handler(void *arg) {
                     }
 
                     res.code = htons(4);
+                
+                    printf("Seat %c%d is pendign for %d\n", row + 'A', col + 1, booknumber);
+                
                 } else {
                     res.code = htons(5);
                 }
@@ -189,19 +217,19 @@ void *connection_handler(void *arg) {
                     continue;
                 }
 
-                printf("Seat %c%d is pendign for %d\n", row + 'A', col + 1, booknumber);
 
                 // allerto tutti gli altri client della scelta di questo client
-                res.code = htons(10);
-                res.short_data = htonl(2); // indico che il posto si è occupato
-
-                send_brodcast_message(&res, sizeof(res), client_sock);
+                if(flag == 0){
+                    res.code = htons(10);
+                    res.short_data = htonl(2); // indico che il posto si è occupato
+                    send_brodcast_message(&res, sizeof(res), client_sock);
+                }
 
                 break;
             }
             case 6: {
                 // confermo la prenotazione
-                set_all_flag_from_nbook(fd, 2, booknumber);
+                set_all_flag_from_nbook(fd, 2, booknumber, NULL, NULL);
 
                 printf("confermo la prenotazione %d\n", booknumber);
 
@@ -225,7 +253,13 @@ void *connection_handler(void *arg) {
                 printf("Sto pulendo la cache della prenotazione %d\n", booknumber);
                 fflush(stdout);
 
-                set_all_flag_from_nbook(fd, 0, booknumber);
+                int *modified_seats = NULL;
+                int change_counter;
+                set_all_flag_from_nbook(fd, 0, booknumber, &modified_seats, &change_counter);
+
+                create_multiple_delete_socket_messages(modified_seats, change_counter, client_sock);
+
+                free(modified_seats);
 
                 unsigned short int matrix[ROWS][COLS];
                 if (get_all_flag(fd, matrix, 0, 0) < 0) {
@@ -254,14 +288,14 @@ void *connection_handler(void *arg) {
                 // allerto tutti gli altri client della scelta di questo client
                 SocketMessagePreamble res;
                 res.code = htons(10);
-                res.short_data = htonl(0);   // indico che il posto si è occupato
+                res.short_data = htonl(0); // indico che il posto si è liberato
                 res.row = req.row;
                 res.col = req.col;
                 res.booknumber = 0;
                 res.dim = 0;
 
                 send_brodcast_message(&res, sizeof(res), client_sock);
-                
+
                 break;
             }
 

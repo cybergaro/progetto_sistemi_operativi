@@ -133,8 +133,14 @@ int seat_get_flag(int ds, int row, int col) { // da sola non garantisce atomicit
     return s.flag;
 }
 
-int set_all_flag_from_nbook(int ds, int flag, int nbook) {
+
+int set_all_flag_from_nbook(int ds, int flag, int nbook, int **modified_seats, int *num_modified) { 
     Seat s;
+
+    // queste strutture dati le uso per gestire quali sono stati i posti su cui sono state effettuate modifiche
+    int *arr = NULL;
+    int count = 0;
+    int capacity = 0;
 
     if (lseek(ds, 0, SEEK_SET) < 0) {
         printf("Error lseek alla partenza\n");
@@ -147,7 +153,8 @@ int set_all_flag_from_nbook(int ds, int flag, int nbook) {
 
         if (read(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
             printf("Error read posto %d\n", i);
-            pthread_mutex_unlock(&seat_mutexes[i]); // SBLOCCO PRIMA DI USCIRE!
+            pthread_mutex_unlock(&seat_mutexes[i]); 
+            free(arr);
             return -1;
         }
 
@@ -166,20 +173,48 @@ int set_all_flag_from_nbook(int ds, int flag, int nbook) {
             if (lseek(ds, -(off_t)sizeof(Seat), SEEK_CUR) == (off_t)-1) {
                 printf("Error lseek indietro\n");
                 pthread_mutex_unlock(&seat_mutexes[i]);
+                free(arr); 
                 return -1;
             }
 
             if (write(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
                 printf("Error write modifica\n");
                 pthread_mutex_unlock(&seat_mutexes[i]);
+                free(arr); 
                 return -1;
             }
+
+            // allocazione dinamica dell'array che tiene treaccia su quali posti sono state fatte modifiche
+            if (count >= capacity) {
+                capacity = (capacity == 0) ? 10 : capacity * 2;
+                
+                int *temp = realloc(arr, capacity * sizeof(int));
+                if (temp == NULL) {
+                    printf("Error realloc\n");
+                    pthread_mutex_unlock(&seat_mutexes[i]);
+                    free(arr); 
+                    return -1;
+                }
+                arr = temp;
+            }
+            
+            arr[count++] = i;
         }
 
         pthread_mutex_unlock(&seat_mutexes[i]);
     }
 
     fdatasync(ds);
+
+    if (modified_seats != NULL) {
+        *modified_seats = arr;
+    } else {
+        free(arr);
+    }
+
+    if (num_modified != NULL) {
+        *num_modified = count;
+    }
 
     return 0;
 }

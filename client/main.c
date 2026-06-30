@@ -162,7 +162,7 @@ exit_get_seat:
 
     // disabilitto la ristampa della mappa asincrona
     pthread_mutex_lock(&rewrite_map_mutex);
-    rewrite_map = 1;
+    rewrite_map = 0;
     pthread_mutex_unlock(&rewrite_map_mutex);
 
     req.row = 0;
