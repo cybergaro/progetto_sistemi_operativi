@@ -115,10 +115,11 @@ redo_get_seat:
         req.booknumber = htonl(booknumber);
 
         printf("Sending to server the removing seat\n");
+        map[lettera - 'A'][numero - 1] = 0;
 
         if (send(socket_des, &req, sizeof(req), 0) < 0) {
                 
-            printf("Posto rimosso");
+            printf("Error sending removal request");
             exit(EXIT_FAILURE);
         }
 
