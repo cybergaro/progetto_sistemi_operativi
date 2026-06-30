@@ -148,6 +148,13 @@ void *connection_handler(void *arg) {
                     continue;
                 }
 
+                for (int y = 0; y < ROWS; y++) {
+                    for (int x = 0; x < COLS; x++) {
+                        printf("%3d ", matrix[y][x]);
+                    }
+                    printf("\n");
+                }
+
                 break;
             }
             case 3: { // richiesta dell'assegnazione di un posto
@@ -234,6 +241,8 @@ void *connection_handler(void *arg) {
                     }
                     printf("\n");
                 }
+
+                booknumber = 0;
 
                 break;
             }

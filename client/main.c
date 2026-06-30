@@ -282,7 +282,7 @@ void *thread_recv(void *arg) { // thread usato per fare il recv e inoltro su una
             printf("chiusura connessione\n");
             break;
         } else if (bytes_ricevuti < 0) {
-            printf("errore di scrittura dal socket\n");
+            // printf("errore di scrittura dal socket\n");
             break;
         }
 

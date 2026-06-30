@@ -1,10 +1,10 @@
 #include "unixfilemanager.h"
 #include <fcntl.h>
+#include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/sem.h>
 #include <unistd.h>
-#include <pthread.h>
 
 #include <stdio.h>
 
@@ -71,6 +71,8 @@ int get_all_flag(int ds, unsigned short int matrix[ROWS][COLS], short int mask, 
                     } else {
                         matrix[r][c] = 2;
                     }
+                } else {
+                    matrix[r][c] = 0;
                 }
 
             } else
@@ -101,9 +103,8 @@ int seat_set_flag(int ds, int row, int col, int flag_s, int nbook_v) { // da sol
     if (write(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
         printf("Error on writing seat_set_flag \n");
         fflush(stdout);
-        exit(EXIT_FAILURE);   
+        exit(EXIT_FAILURE);
     }
-
 
     fdatasync(ds);
 
@@ -149,33 +150,35 @@ int set_all_flag_from_nbook(int ds, int flag, int nbook) {
         }
 
         if (s.nbook == nbook && !(flag == 3 && s.flag != 1)) {
-            
+
             if (flag == 3) {
                 s.flag = 0;
-                s.nbook = 0; 
+                s.nbook = 0;
             } else {
                 s.flag = flag;
                 if (flag == 0) {
-                    s.nbook = 0; 
+                    s.nbook = 0;
                 }
             }
-    
+
+            printf("sto scrivendo sul file flag-> %d nbook-> %d\n", s.flag, s.nbook);
+
             if (lseek(ds, -(off_t)sizeof(Seat), SEEK_CUR) == (off_t)-1) {
                 printf("Error lseek indietro\n");
-                pthread_mutex_unlock(&seat_mutexes[i]); 
+                pthread_mutex_unlock(&seat_mutexes[i]);
                 return -1;
             }
 
             if (write(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
                 printf("Error write modifica\n");
-                pthread_mutex_unlock(&seat_mutexes[i]); 
+                pthread_mutex_unlock(&seat_mutexes[i]);
                 return -1;
             }
         }
 
         pthread_mutex_unlock(&seat_mutexes[i]);
     }
-    
+
     fdatasync(ds);
 
     return 0;
