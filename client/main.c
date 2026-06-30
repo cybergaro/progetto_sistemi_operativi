@@ -45,6 +45,8 @@ typedef struct {
 int socket_des;
 unsigned short int map[ROWS][COLS]; // matrice che rappresenta lo stato di occupazione dei posti
 
+int pipefd[2]; //pipe per comunicare con il server 
+
 unsigned int get_map(unsigned int booknumber) { // il valore di ritorno è il booknumber che viene assegnato dal server
     SocketMessagePreamble req, res;
 
@@ -284,6 +286,15 @@ int main(int argc, char const *argv[]) {
 
     printf("Connected to the server ✅\n");
 
+    printf("create pipe");
+    if(pipe(pipefd)<0){
+        printf("error creating the pipe\n");
+        close(socket_des);
+        exit(EXIT_FAILURE);
+    }
+
+    printf("pipe created\n"); 
+    
     printf("Create recv thread... \n");
 
     pthread_t thread_recv_id;
