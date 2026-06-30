@@ -17,7 +17,7 @@
 #include <sys/types.h>
 
 #define BACKLOG 10
-#define PORT 8081
+#define PORT 8080
 
 #define NAME_FILE_MAP "cinema_map.bin"
 
@@ -148,13 +148,6 @@ void *connection_handler(void *arg) {
                     continue;
                 }
 
-                for (int y = 0; y < ROWS; y++) {
-                    for (int x = 0; x < COLS; x++) {
-                        printf("%3d ", matrix[y][x]);
-                    }
-                    printf("\n");
-                }
-
                 break;
             }
             case 3: { // richiesta dell'assegnazione di un posto
@@ -228,6 +221,19 @@ void *connection_handler(void *arg) {
                 fflush(stdout);
 
                 set_all_flag_from_nbook(fd, 0, booknumber);
+
+                unsigned short int matrix[ROWS][COLS];
+                if (get_all_flag(fd, matrix, 0, 0) < 0) {
+                    printf("Error: Get all map flag \n");
+                    continue;
+                }
+
+                for (int y = 0; y < ROWS; y++) {
+                    for (int x = 0; x < COLS; x++) {
+                        printf("%3d ", matrix[y][x]);
+                    }
+                    printf("\n");
+                }
 
                 break;
             }

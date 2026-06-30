@@ -18,8 +18,8 @@
 #include "utility.h"
 #endif
 
-#define SERVER_ADDR "10.172.19.16"
-#define SERVER_PORT 8081
+#define SERVER_ADDR "127.0.0.1"
+#define SERVER_PORT 8080
 
 typedef struct {
     unsigned short code;     // indica il codice della richiesta
@@ -232,7 +232,7 @@ get_book_number:
     printMap(map, booknumber);
 
 get_old_book_opcode:
-    printf("1 to delete book, 0 to cancell \n");
+    printf("1 to delete book, 0 to cancell-> ");
     fflush(stdout);
 
     if (fgets(buff, sizeof(buff), stdin) < 0) {

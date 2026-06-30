@@ -159,8 +159,6 @@ int set_all_flag_from_nbook(int ds, int flag, int nbook) {
                     s.nbook = 0; 
                 }
             }
-
-            printf("sto scrivendo sul file flag-> %d nbook-> %d\n", s.flag, s.nbook);
     
             if (lseek(ds, -(off_t)sizeof(Seat), SEEK_CUR) == (off_t)-1) {
                 printf("Error lseek indietro\n");
