@@ -33,6 +33,7 @@ typedef struct {
     unsigned short col;      // indica la colonna del posto
     unsigned int booknumber; // indica il codice della prenotazione
     unsigned int dim;        // rappresenta la dimensione dei dati che seguono il preambolo
+    int short_data;          // questo campo non ha un uso specifico ma può essere utilizzato per inviare delle informazioni all'occorrenza
 } SocketMessagePreamble;
 
 /**
@@ -62,9 +63,9 @@ void send_brodcast_message(void *message, int message_size, int client_sock) {
 
         printf("Send brodcast message to %d\n", sockets[i]);
 
-        // if (send(sockets[i], message, message_size, 0) < 0) {
-        //     printf("Error: fallito invio broadcast al socket %d\n", sockets[i]);
-        // }
+        if (send(sockets[i], message, message_size, 0) < 0) {
+            printf("Error: fallito invio broadcast al socket %d\n", sockets[i]);
+        }
     }
 
     pthread_mutex_unlock(&clients_mutex);
@@ -137,6 +138,7 @@ void *connection_handler(void *arg) {
                 res.col = 0;
                 res.booknumber = htonl(booknumber);
                 res.dim = htonl(sizeof(matrix));
+                res.short_data = 0;
 
                 size_t total_size = sizeof(res) + sizeof(matrix);
 
@@ -146,13 +148,6 @@ void *connection_handler(void *arg) {
                 if (send(client_sock, buffer, total_size, 0) < 0) {
                     printf("Error: send response (2)\n");
                     continue;
-                }
-
-                for (int y = 0; y < ROWS; y++) {
-                    for (int x = 0; x < COLS; x++) {
-                        printf("%3d ", matrix[y][x]);
-                    }
-                    printf("\n");
                 }
 
                 break;
@@ -174,6 +169,7 @@ void *connection_handler(void *arg) {
                 res.col = htons(col);
                 res.booknumber = 0;
                 res.dim = 0;
+                res.short_data = 0;
 
                 if (flag == 0) {
                     // salvo nel file che quel posto è in fase pending
@@ -197,6 +193,7 @@ void *connection_handler(void *arg) {
 
                 // allerto tutti gli altri client della scelta di questo client
                 res.code = htons(10);
+                res.short_data = htonl(2); // indico che il posto si è occupato
 
                 send_brodcast_message(&res, sizeof(res), client_sock);
 
@@ -212,6 +209,7 @@ void *connection_handler(void *arg) {
                 res.code = htons(8);
                 res.row = 0;
                 res.col = 0;
+                res.short_data = 0;
                 res.booknumber = booknumber;
                 res.dim = 0;
 
@@ -235,13 +233,6 @@ void *connection_handler(void *arg) {
                     continue;
                 }
 
-                for (int y = 0; y < ROWS; y++) {
-                    for (int x = 0; x < COLS; x++) {
-                        printf("%3d ", matrix[y][x]);
-                    }
-                    printf("\n");
-                }
-
                 booknumber = 0;
 
                 break;
@@ -260,6 +251,17 @@ void *connection_handler(void *arg) {
 
                 pthread_mutex_unlock(&seat_mutexes[row * COLS + col]);
 
+                // allerto tutti gli altri client della scelta di questo client
+                SocketMessagePreamble res;
+                res.code = htons(10);
+                res.short_data = htonl(0);   // indico che il posto si è occupato
+                res.row = req.row;
+                res.col = req.col;
+                res.booknumber = 0;
+                res.dim = 0;
+
+                send_brodcast_message(&res, sizeof(res), client_sock);
+                
                 break;
             }
 

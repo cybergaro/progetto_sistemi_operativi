@@ -27,6 +27,7 @@ typedef struct {
     unsigned short col;      // indica la colonna del posto
     unsigned int booknumber; // indica il codice della prenotazione
     unsigned int dim;        // rappresenta la dimensione dei dati che seguono il preambolo
+    int short_data;          // questo campo non ha un uso specifico ma può essere utilizzato per inviare delle informazioni all'occorrenza
 } SocketMessagePreamble;
 
 /**
@@ -47,6 +48,9 @@ int socket_des;
 unsigned short int map[ROWS][COLS]; // matrice che rappresenta lo stato di occupazione dei posti
 
 int pipefd[2]; // pipe per comunicare con il server
+
+short int rewrite_map = 0;
+pthread_mutex_t rewrite_map_mutex; // questa mutex indica se la mappa deve essere ristampata in modo asincrono
 
 unsigned int get_map(unsigned int booknumber) { // il valore di ritorno è il booknumber che viene assegnato dal server
     SocketMessagePreamble req, res;
@@ -95,9 +99,14 @@ void new_book() {
     int option = -1;
     int counter_seats = 0; // uso questa variabile per contare quanti posti sono associati alla prenotazione in corso.
 
+    // abilito la ristampa della mappa asincrona
+    pthread_mutex_lock(&rewrite_map_mutex);
+    rewrite_map = 1;
+    pthread_mutex_unlock(&rewrite_map_mutex);
+
 // procedura per lettura del posto
 get_seat:
-
+    system("clear");
     printMap(map, booknumber);
 
 redo_get_seat:
@@ -154,6 +163,11 @@ redo_get_seat:
     goto get_seat;
 
 exit_get_seat:
+
+    // disabilitto la ristampa della mappa asincrona
+    pthread_mutex_lock(&rewrite_map_mutex);
+    rewrite_map = 1;
+    pthread_mutex_unlock(&rewrite_map_mutex);
 
     req.row = 0;
     req.col = 0;
@@ -229,6 +243,7 @@ get_book_number:
     fflush(stdout);
 
     get_map(booknumber);
+    system("clear");
     printMap(map, booknumber);
 
 get_old_book_opcode:
@@ -271,6 +286,23 @@ get_old_book_opcode:
     }
 }
 
+void async_update_map(short int row, short int col, short int flag) { // questa funzione si occupa di aggiornare lo stato di un posto all'interno della mappa in modo asyncrono
+    map[row][col] = flag;
+
+    pthread_mutex_lock(&rewrite_map_mutex);
+
+    if (rewrite_map == 1) {
+        printf("\0337");
+        printf("\033[H");
+        printMap(map, 0);
+        printf("\0338");
+
+        fflush(stdout);
+    }
+
+    pthread_mutex_unlock(&rewrite_map_mutex);
+}
+
 void *thread_recv(void *arg) { // thread usato per fare il recv e inoltro su una pipe e aggiornamento mappa.
     SocketMessagePreamble buff;
     char extra_buff[1024]; // viene utilizzato per i dati extra
@@ -288,7 +320,7 @@ void *thread_recv(void *arg) { // thread usato per fare il recv e inoltro su una
 
         // controllo il codice che è stato ricevuto
         if (ntohs(buff.code) == 10) { // messaggio broadcast per aggiornamento posto
-
+            async_update_map(ntohs(buff.row), ntohs(buff.col), (short int)ntohl(buff.short_data));
             continue;
         }
 
@@ -353,6 +385,15 @@ int main(int argc, char const *argv[]) {
     }
 
     printf("pipe created\n");
+
+    printf("Creation of mutex for rewrite map...\n");
+
+    if (pthread_mutex_init(&rewrite_map_mutex, NULL) < 0) {
+        printf("Error during creation of mutex \n");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Mutex for rewrite map created \n");
 
     printf("Create recv thread... \n");
 

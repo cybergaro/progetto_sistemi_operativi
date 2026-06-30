@@ -19,10 +19,17 @@ void printMenu() {
     fflush(stdout);
 }
 
-void printMap(unsigned short int map[ROWS][COLS], unsigned int booknumber) {
-    system("clear");
+// per evitare di creare problemi inseendo il booknumber come variabile globale creo una variabile 
+// "cache" che utilizza solo print map quando non gli viene passato un boocknumber e quindi ristampa il precedente
+unsigned int cache_booknumber; 
 
-    char buffer[4096];
+void printMap(unsigned short int map[ROWS][COLS], unsigned int booknumber) {
+    if(booknumber != 0)
+        cache_booknumber = booknumber;
+    else
+        booknumber = cache_booknumber;
+
+    char buffer[4096]; 
     buffer[0] = '\0';
 
     char *ptr = buffer;
