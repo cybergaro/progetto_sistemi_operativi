@@ -106,11 +106,9 @@ redo_get_seat:
     else if (code_option == 1 || code_option == 2)
         goto exit_get_seat;
 
-    // controllo che il posto sia libero
-    if (map[lettera - 'A'][numero - 1] == 1) {
-        printf("⚠️ You have already selected this place \n");
-        
-         // chiedo al server il posto che ho selezionato durante la prenotazione
+
+    if (map[lettera - 'A'][numero - 1] == 1) { // controlo che il posto che ho selezionato non sia uno di quelli che avevo selezionato in precedenza
+        // chiedo al server il posto che ho selezionato durante la prenotazione
         req.code = htons(9);
         req.row = htons(lettera - 'A');
         req.col = htons(numero - 1);
@@ -125,7 +123,6 @@ redo_get_seat:
         }
 
         goto redo_get_seat;
-
     }
 
     // chiedo al server se il posto è libero
