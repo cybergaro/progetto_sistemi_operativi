@@ -37,16 +37,40 @@ typedef struct {
 
 /**
  * Allowed codes:
- * 1) get map with flags
- * 2) send map with flags (il server spedisce al client la mappa con i posti)
- * 3) request seat (imposta il flag di un posto a 1 indicando il fatto che su quel posto è in corso una prenotazione)
- * 4) reserved seat (il posto ora ha il flag di prenotazine pending f=1)
- * 5) seat not bookable (questo posto non risulta prenotabile)
- * 6) confirm book (conferma la prenotazione)
- * 7) cancell book (rimuove tutti i posti di una prenotazione)
- * 8) send booknumber (usato dal server per comunicare al client il codice di prenotazione)
- * 9) remove single seat during the booking operation
+ * 1)  get map with flags
+ * 2)  send map with flags (il server spedisce al client la mappa con i posti)
+ * 3)  request seat (imposta il flag di un posto a 1 indicando il fatto che su quel posto è in corso una prenotazione)
+ * 4)  reserved seat (il posto ora ha il flag di prenotazine pending f=1)
+ * 5)  seat not bookable (questo posto non risulta prenotabile)
+ * 6)  confirm book (conferma la prenotazione)
+ * 7)  cancell book (rimuove tutti i posti di una prenotazione)
+ * 8)  send booknumber (usato dal server per comunicare al client il codice di prenotazione)
+ * 9)  remove single seat during the booking operation
+ * 10) broadcast single seat update (comunico al client che un certo posto ha fatto un cambiamento di flag)
  */
+
+
+void send_brodcast_message(void *message, int message_size, int client_sock){
+    if (sockets == NULL || n_clients == 0) { // controllo se ci sono dei client connessi
+        return;
+    }
+
+    pthread_mutex_lock(&clients_mutex);
+
+    for (int i = 0; i < n_clients; i++) {
+        if(client_sock == sockets[i])
+            continue;
+
+        printf("Send brodcast message to %d\n", sockets[i]);
+
+        // if (send(sockets[i], message, message_size, 0) < 0) {
+        //     printf("Error: fallito invio broadcast al socket %d\n", sockets[i]);
+        // }
+    }
+
+    pthread_mutex_unlock(&clients_mutex);
+
+}
 
 void *connection_handler(void *arg) {
     struct connection_handler_arg *data = (struct connection_handler_arg *)arg;
@@ -166,6 +190,11 @@ void *connection_handler(void *arg) {
 
                 printf("Seat %c%d is pendign for %d\n", row + 'A', col + 1, booknumber);
 
+                // allerto tutti gli altri client della scelta di questo client
+                res.code = htons(10);
+                
+                send_brodcast_message(&res, sizeof(res), client_sock);
+                
                 break;
             }
             case 6: {
