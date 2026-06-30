@@ -17,7 +17,7 @@
 #include <sys/types.h>
 
 #define BACKLOG 10
-#define PORT 8080
+#define PORT 8081
 
 #define NAME_FILE_MAP "cinema_map.bin"
 
