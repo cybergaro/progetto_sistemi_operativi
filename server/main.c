@@ -76,7 +76,7 @@ void *connection_handler(void *arg) {
             fflush(stdout);
 
             // rilascio tutti i posti che quel cliente stava prenotando
-            set_all_flag_from_nbook(fd, 3, booknumber); 
+            set_all_flag_from_nbook(fd, 3, booknumber);
 
             // rimuovo il socket dalla lista
             remove_client(client_sock);
@@ -194,6 +194,22 @@ void *connection_handler(void *arg) {
                 fflush(stdout);
 
                 set_all_flag_from_nbook(fd, 0, booknumber);
+
+                break;
+            }
+
+            case 9: {
+                // elimino un posto da una prenotazione
+                int row = ntohs(req.row);
+                int col = ntohs(req.col);
+                
+                pthread_mutex_lock(&seat_mutexes[row * COLS + col]);
+
+                if (seat_set_flag(fd, row, col, 0, booknumber) < 0) {
+                    printf("Error: seat set flag f = 0");
+                }
+
+                pthread_mutex_unlock(&seat_mutexes[row * COLS + col]);
 
                 break;
             }
