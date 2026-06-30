@@ -123,7 +123,7 @@ redo_get_seat:
             exit(EXIT_FAILURE);
         }
 
-        goto redo_get_seat;
+        goto get_seat;
     }
 
     // chiedo al server se il posto è libero
