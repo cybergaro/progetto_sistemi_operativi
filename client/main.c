@@ -255,8 +255,23 @@ get_old_book_opcode:
 }
 
 void *thread_recv(void *arg){ // thread usato per fare il recv e inoltro su una pipe e aggiornamento mappa.
-    
-
+    SocketMessagePreamble buff;
+    while(1){
+        int bytes_ricevuti= recv(socket_des, &buff,sizeof(buff),0);
+        if (bytes_ricevuti==0)
+        {
+            printf("chiusura connessione\n");
+            break;
+        } else if(bytes_ricevuti<0)
+        {
+            printf("errore di scrittura dal socket\n");
+            break;
+        }
+        if (write(pipefd[1],&buff,sizeof(bytes_ricevuti))<0)
+        {
+            printf("errore di scrittura\n"); 
+        }
+    }
     return NULL;
 }
 
