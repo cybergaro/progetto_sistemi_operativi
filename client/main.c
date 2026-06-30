@@ -291,7 +291,7 @@ void *thread_recv(void *arg) { // thread usato per fare il recv e inoltro su una
             break;
         }
 
-        if (write(pipefd[1], &extra_buff, sizeof(bytes_ricevuti)) < 0) {
+        if (write(pipefd[1], &extra_buff, bytes_ricevuti) < 0) {
             printf("errore di scrittura\n");
         }
     }
