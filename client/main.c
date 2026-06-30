@@ -10,7 +10,6 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <pthread.h>
 
 #ifdef GUI
 #include "gui.h"
@@ -39,6 +38,7 @@ typedef struct {
  * 6) confirm book (conferma la prenotazione)
  * 7) cancell book (rimuove tutti i posti di una prenotazione)
  * 8) send booknumber (usato dal server per comunicare al client il codice di prenotazione)
+ * 9) remove single seat during the booking operation
  */
 
 int socket_des;
@@ -108,7 +108,23 @@ redo_get_seat:
     // controllo che il posto sia libero
     if (map[lettera - 'A'][numero - 1] == 1) {
         printf("⚠️ You have already selected this place \n");
+        
+         // chiedo al server il posto che ho selezionato durante la prenotazione
+        req.code = htons(9);
+        req.row = htons(lettera - 'A');
+        req.col = htons(numero - 1);
+        req.booknumber = htonl(booknumber);
+
+        printf("Sending to server the removing seat\n");
+
+        if (send(socket_des, &req, sizeof(req), 0) < 0) {
+                
+            printf("Posto rimosso");
+            exit(EXIT_FAILURE);
+        }
+
         goto redo_get_seat;
+
     }
 
     // chiedo al server se il posto è libero
@@ -211,7 +227,7 @@ get_book_number:
     printMap(map, booknumber);
 
 get_old_book_opcode:
-    printf("1 to delete book, 0 to cancell-> ");
+    printf("1 to delete book, 0 to cancell \n");
     fflush(stdout);
 
     if (fgets(buff, sizeof(buff), stdin) < 0) {
@@ -235,11 +251,6 @@ get_old_book_opcode:
     if(opcode == 1){ // cancello la prenotazione
 
     }
-}
-
-void *thread_recv(void *arg){ // questo thread dovrà solo ricevere e scrivere all'interno di una pipe o in caso aggiornare la mappa
-    
-    return NULL;
 }
 
 int main(int argc, char const *argv[]) {
@@ -266,13 +277,6 @@ int main(int argc, char const *argv[]) {
     }
 
     printf("Connected to the server ✅\n");
-
-    printf("Crete Recv thread \n");
-
-    pthread_t recv_thread_id;
-    pthread_create(&recv_thread_id, NULL, thread_recv, NULL);
-
-    printf("Recv thread created ✅\n");
 
     printf("Open history file \n");
 
