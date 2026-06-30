@@ -10,6 +10,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <pthread.h>
 
 #ifdef GUI
 #include "gui.h"
@@ -253,6 +254,13 @@ get_old_book_opcode:
     }
 }
 
+void *thread_recv(void *arg){ // thread usato per fare il recv e inoltro su una pipe e aggiornamento mappa.
+    
+
+    return NULL;
+}
+
+
 int main(int argc, char const *argv[]) {
 
     printf("Setup... ⏳\n");
@@ -277,6 +285,13 @@ int main(int argc, char const *argv[]) {
     }
 
     printf("Connected to the server ✅\n");
+
+    printf("Create recv thread... \n");
+
+    pthread_t thread_recv_id;
+    pthread_create(&thread_recv_id, NULL, thread_recv, NULL);
+
+    printf("Recv thread created  ✅\n");
 
     printf("Open history file \n");
 

@@ -45,6 +45,7 @@ typedef struct {
  * 6) confirm book (conferma la prenotazione)
  * 7) cancell book (rimuove tutti i posti di una prenotazione)
  * 8) send booknumber (usato dal server per comunicare al client il codice di prenotazione)
+ * 9) remove single seat during the booking operation
  */
 
 void *connection_handler(void *arg) {
