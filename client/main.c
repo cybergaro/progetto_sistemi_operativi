@@ -161,6 +161,10 @@ exit_get_seat:
     req.booknumber = htonl(booknumber);
 
     if (code_option == 1) {
+
+        if (counter_seats == 0)
+            return; // se non ci sono posti
+
         req.code = htons(6);
 
         if (send(socket_des, &req, sizeof(req), 0) < 0) {
@@ -248,9 +252,11 @@ get_old_book_opcode:
         return;
     }
 
-    if(opcode == 1){ // cancello la prenotazione
+    if (opcode == 1) { // cancello la prenotazione
         SocketMessagePreamble req;
-        req.dim=0;
+        req.row = 0;
+        req.col = 0;
+        req.dim = 0;
         req.code = htons(7);
         req.booknumber = htonl(booknumber);
 
@@ -258,16 +264,20 @@ get_old_book_opcode:
             printf("Error: send cancel book \n");
             return;
         }
+
+        removeFromHistory(booknumber);
+
+        printf("Book deleted \n");
     }
 }
 
 void *thread_recv(void *arg) { // thread usato per fare il recv e inoltro su una pipe e aggiornamento mappa.
     SocketMessagePreamble buff;
-    char extra_buff[1024]; // viene utilizzato per i dati extra 
+    char extra_buff[1024]; // viene utilizzato per i dati extra
 
     while (1) {
-        int bytes_ricevuti = recv(socket_des, &buff, sizeof(buff), 0);
-        
+        int bytes_ricevuti = recv(socket_des, &buff, sizeof(buff), MSG_WAITALL);
+
         if (bytes_ricevuti == 0) {
             printf("chiusura connessione\n");
             break;
@@ -277,21 +287,22 @@ void *thread_recv(void *arg) { // thread usato per fare il recv e inoltro su una
         }
 
         // controllo il codice che è stato ricevuto
-        if(ntohs(buff.code) == 10){ // messaggio broadcast per aggiornamento posto
-        
+        if (ntohs(buff.code) == 10) { // messaggio broadcast per aggiornamento posto
+
             continue;
-        }
-        
-        if (write(pipefd[1], &buff, sizeof(buff)) < 0) {
-            printf("errore di scrittura\n");
         }
 
-        if(buff.dim == 0) // non ci sono dei dati extra da ricevere
+        if (write(pipefd[1], &buff, sizeof(buff)) < 0) {
+            printf("errore di scrittura\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if (buff.dim == 0) // non ci sono dei dati extra da ricevere
             continue;
-        
+
         // ricevo dati extra
-        bytes_ricevuti = recv(socket_des, &extra_buff, ntohl(buff.dim), 0);
-        
+        bytes_ricevuti = recv(socket_des, &extra_buff, ntohl(buff.dim), MSG_WAITALL);
+
         if (bytes_ricevuti == 0) {
             printf("chiusura connessione\n");
             break;

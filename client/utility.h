@@ -21,5 +21,6 @@ void printMap(unsigned short int map[ROWS][COLS], unsigned int booknumber);
 int getSeatNumber(int *numero, char *lettera);
 void printHistory(void);
 void saveToHistory(HistoryRecord *record);
+void removeFromHistory(unsigned int booknumber);
 
 #endif

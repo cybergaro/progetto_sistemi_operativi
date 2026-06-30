@@ -49,8 +49,7 @@ typedef struct {
  * 10) broadcast single seat update (comunico al client che un certo posto ha fatto un cambiamento di flag)
  */
 
-
-void send_brodcast_message(void *message, int message_size, int client_sock){
+void send_brodcast_message(void *message, int message_size, int client_sock) {
     if (sockets == NULL || n_clients == 0) { // controllo se ci sono dei client connessi
         return;
     }
@@ -58,7 +57,7 @@ void send_brodcast_message(void *message, int message_size, int client_sock){
     pthread_mutex_lock(&clients_mutex);
 
     for (int i = 0; i < n_clients; i++) {
-        if(client_sock == sockets[i])
+        if (client_sock == sockets[i])
             continue;
 
         printf("Send brodcast message to %d\n", sockets[i]);
@@ -69,7 +68,6 @@ void send_brodcast_message(void *message, int message_size, int client_sock){
     }
 
     pthread_mutex_unlock(&clients_mutex);
-
 }
 
 void *connection_handler(void *arg) {
@@ -93,7 +91,7 @@ void *connection_handler(void *arg) {
     ssize_t read_size;
 
     while (1) {
-        read_size = recv(client_sock, &req, sizeof(req), 0);
+        read_size = recv(client_sock, &req, sizeof(req), MSG_WAITALL);
 
         if (read_size == 0) {
             printf("Client disconnected! \n");
@@ -150,6 +148,13 @@ void *connection_handler(void *arg) {
                     continue;
                 }
 
+                for (int y = 0; y < ROWS; y++) {
+                    for (int x = 0; x < COLS; x++) {
+                        printf("%3d ", matrix[y][x]);
+                    }
+                    printf("\n");
+                }
+
                 break;
             }
             case 3: { // richiesta dell'assegnazione di un posto
@@ -192,9 +197,9 @@ void *connection_handler(void *arg) {
 
                 // allerto tutti gli altri client della scelta di questo client
                 res.code = htons(10);
-                
+
                 send_brodcast_message(&res, sizeof(res), client_sock);
-                
+
                 break;
             }
             case 6: {
@@ -231,7 +236,7 @@ void *connection_handler(void *arg) {
                 // elimino un posto da una prenotazione
                 int row = ntohs(req.row);
                 int col = ntohs(req.col);
-                
+
                 pthread_mutex_lock(&seat_mutexes[row * COLS + col]);
 
                 if (seat_set_flag(fd, row, col, 0, booknumber) < 0) {

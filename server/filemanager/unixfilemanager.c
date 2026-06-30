@@ -130,45 +130,47 @@ int seat_get_flag(int ds, int row, int col) { // da sola non garantisce atomicit
     return s.flag;
 }
 
-int set_all_flag_from_nbook(int ds, int flag, int nbook) { // impostando flag = 3 si fa una pulizia della cache, quindi si portano a 0 tutti quelli impostati a 1
-
+int set_all_flag_from_nbook(int ds, int flag, int nbook) {
     Seat s;
 
     if (lseek(ds, 0, SEEK_SET) < 0) {
-        printf("Error lseek \n");
+        printf("Error lseek alla partenza\n");
         fflush(stdout);
         return -1;
     }
 
     for (int i = 0; i < ROWS * COLS; i++) {
-
         pthread_mutex_lock(&seat_mutexes[i]);
 
         if (read(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
+            printf("Error read posto %d\n", i);
+            pthread_mutex_unlock(&seat_mutexes[i]); // SBLOCCO PRIMA DI USCIRE!
             return -1;
         }
 
         if (s.nbook == nbook && !(flag == 3 && s.flag != 1)) {
             
-            if(flag == 3){ // se devo pulire la cache allora il flag è 0
+            if (flag == 3) {
                 s.flag = 0;
-            }else{
+                s.nbook = 0; 
+            } else {
                 s.flag = flag;
+                if (flag == 0) {
+                    s.nbook = 0; 
+                }
             }
 
-            if (flag == 0) {
-                s.nbook = 0;
-            }
-
-            if (lseek(ds, -sizeof(Seat), SEEK_CUR) == (off_t)-1) {
-                printf("Error lseek \n");
-                fflush(stdout);
+            printf("sto scrivendo sul file flag-> %d nbook-> %d\n", s.flag, s.nbook);
+    
+            if (lseek(ds, -(off_t)sizeof(Seat), SEEK_CUR) == (off_t)-1) {
+                printf("Error lseek indietro\n");
+                pthread_mutex_unlock(&seat_mutexes[i]); 
                 return -1;
             }
 
             if (write(ds, &s, sizeof(Seat)) != sizeof(Seat)) {
-                printf("Error write \n");
-                fflush(stdout);
+                printf("Error write modifica\n");
+                pthread_mutex_unlock(&seat_mutexes[i]); 
                 return -1;
             }
         }

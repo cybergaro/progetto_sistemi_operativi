@@ -1,11 +1,11 @@
 #include "utility.h"
+#include <ctype.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#include <ctype.h>
 
 #include <sys/types.h>
 
@@ -54,7 +54,7 @@ void printMap(unsigned short int map[ROWS][COLS], unsigned int booknumber) {
     fflush(stdout);
 }
 
-/* 
+/*
 return = 0  ==> ho letto un posto valido
 return = -1 ==> posto non valido
 return = 1  ==> l'utente vuole terminare salvando
@@ -71,7 +71,7 @@ int getSeatNumber(int *numero, char *lettera) {
         fflush(stdout);
         return -1;
     }
-    
+
     input[strcspn(input, "\n")] = '\0';
 
     if (strcmp(input, "1") == 0) // esco salvando
@@ -128,4 +128,45 @@ void printHistory() {
 void saveToHistory(HistoryRecord *record) {
     lseek(history_des, 0, SEEK_END);
     write(history_des, record, sizeof(HistoryRecord));
+}
+
+void removeFromHistory(unsigned int booknumber) {
+    lseek(history_des, 0, SEEK_SET);
+
+    HistoryRecord record;
+    int found = 0;
+    off_t read_pos, write_pos;
+
+    while (read(history_des, &record, sizeof(HistoryRecord)) == sizeof(HistoryRecord)) {
+        if (record.booknumber == booknumber) {
+            found = 1;
+            write_pos = lseek(history_des, 0, SEEK_CUR) - sizeof(HistoryRecord);
+            read_pos = lseek(history_des, 0, SEEK_CUR);
+            break;
+        }
+    }
+
+    if (!found) {
+        return;
+    }
+
+    while (1) {
+        lseek(history_des, read_pos, SEEK_SET);
+        if (read(history_des, &record, sizeof(HistoryRecord)) < sizeof(HistoryRecord)) {
+            break;
+        }
+
+        lseek(history_des, write_pos, SEEK_SET);
+        if (write(history_des, &record, sizeof(HistoryRecord)) < 0) {
+            printf("Error: fallita la scrittura durante la rimozione dello storico\n");
+            return;
+        }
+
+        read_pos += sizeof(HistoryRecord);
+        write_pos += sizeof(HistoryRecord);
+    }
+
+    if (ftruncate(history_des, write_pos) < 0) {
+        printf("Error:truncate histoy\n");
+    } 
 }
