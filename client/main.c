@@ -122,7 +122,7 @@ redo_get_seat:
             printf("Error sending removal request");
             exit(EXIT_FAILURE);
         }
-
+        counter_seats--;
         goto get_seat;
     }
 
