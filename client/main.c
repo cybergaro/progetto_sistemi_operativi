@@ -8,9 +8,9 @@
 // librerie posix
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <pthread.h>
 
 #ifdef GUI
 #include "gui.h"
@@ -31,21 +31,22 @@ typedef struct {
 
 /**
  * Allowed codes:
- * 1) get map with flags
- * 2) send map with flags (il server spedisce al client la mappa con i posti)
- * 3) request seat (imposta il flag di un posto a 1 indicando il fatto che su quel posto è in corso una prenotazione)
- * 4) reserved seat (il posto ora ha il flag di prenotazine pending f=1)
- * 5) seat not bookable (questo posto non risulta prenotabile)
- * 6) confirm book (conferma la prenotazione)
- * 7) cancell book (rimuove tutti i posti di una prenotazione)
- * 8) send booknumber (usato dal server per comunicare al client il codice di prenotazione)
- * 9) remove single seat during the booking operation
+ * 1)  get map with flags
+ * 2)  send map with flags (il server spedisce al client la mappa con i posti)
+ * 3)  request seat (imposta il flag di un posto a 1 indicando il fatto che su quel posto è in corso una prenotazione)
+ * 4)  reserved seat (il posto ora ha il flag di prenotazine pending f=1)
+ * 5)  seat not bookable (questo posto non risulta prenotabile)
+ * 6)  confirm book (conferma la prenotazione)
+ * 7)  cancell book (rimuove tutti i posti di una prenotazione)
+ * 8)  send booknumber (usato dal server per comunicare al client il codice di prenotazione)
+ * 9)  remove single seat during the booking operation
+ * 10) broadcast single seat update (comunico al client che un certo posto ha fatto un cambiamento di flag)
  */
 
 int socket_des;
 unsigned short int map[ROWS][COLS]; // matrice che rappresenta lo stato di occupazione dei posti
 
-int pipefd[2]; //pipe per comunicare con il server 
+int pipefd[2]; // pipe per comunicare con il server
 
 unsigned int get_map(unsigned int booknumber) { // il valore di ritorno è il booknumber che viene assegnato dal server
     SocketMessagePreamble req, res;
@@ -62,7 +63,7 @@ unsigned int get_map(unsigned int booknumber) { // il valore di ritorno è il bo
         exit(EXIT_FAILURE);
     }
 
-    if (recv(socket_des, &res, sizeof(res), 0) < 0) {
+    if (read(pipefd[0], &res, sizeof(res)) < 0) {
         printf("Error during recv preamble \n");
         fflush(stdout);
         exit(EXIT_FAILURE);
@@ -74,7 +75,7 @@ unsigned int get_map(unsigned int booknumber) { // il valore di ritorno è il bo
         exit(EXIT_FAILURE);
     }
 
-    if (recv(socket_des, map, sizeof(map), 0) < 0) {
+    if (read(pipefd[0], map, sizeof(map)) < 0) {
         printf("Error during recv of map \n");
         fflush(stdout);
         exit(EXIT_FAILURE);
@@ -108,9 +109,8 @@ redo_get_seat:
     else if (code_option == 1 || code_option == 2)
         goto exit_get_seat;
 
-
     if (map[lettera - 'A'][numero - 1] == 1) { // controlo che il posto che ho selezionato non sia uno di quelli che avevo selezionato in precedenza
-        // chiedo al server il posto che ho selezionato durante la prenotazione
+        // chiedo al server di cancellare il posto che ho selezionato durante la prenotazione
         req.code = htons(9);
         req.row = htons(lettera - 'A');
         req.col = htons(numero - 1);
@@ -120,10 +120,10 @@ redo_get_seat:
         map[lettera - 'A'][numero - 1] = 0;
 
         if (send(socket_des, &req, sizeof(req), 0) < 0) {
-                
             printf("Error sending removal request");
             exit(EXIT_FAILURE);
         }
+
         counter_seats--;
         goto get_seat;
     }
@@ -141,7 +141,7 @@ redo_get_seat:
         goto redo_get_seat;
     }
 
-    recv(socket_des, &res, sizeof(res), 0);
+    read(pipefd[0], &res, sizeof(res));
 
     if (ntohs(res.code) == 5) {
         printf("Error: this seat is alredy taken \n");
@@ -168,7 +168,7 @@ exit_get_seat:
             return;
         }
 
-        if (recv(socket_des, &res, sizeof(res), 0) < 0) {
+        if (read(pipefd[0], &res, sizeof(res)) < 0) {
             printf("Error: during reciving \n");
             return;
         }
@@ -209,10 +209,10 @@ get_book_number:
 
     booknumber = strtol(buff, 0, 10);
 
-    if(booknumber == 0){
+    if (booknumber == 0) {
         return;
     }
-    
+
     // qui faccio una verifica per capire se il codice di prenotazione inserito è un codice valido,
     // ma questa verifica dovrebbe variare a seconda di come viene generato il codice
     if (booknumber < 1782050448) {
@@ -238,43 +238,66 @@ get_old_book_opcode:
     }
 
     int opcode = strtol(buff, 0, 10);
-    if(opcode < 0 || opcode > 1){
+    if (opcode < 0 || opcode > 1) {
         printf("Invalid operation \n");
         fflush(stdout);
         goto get_old_book_opcode;
     }
 
-
-    if(opcode == 0){
+    if (opcode == 0) {
         return;
     }
 
-    if(opcode == 1){ // cancello la prenotazione
-
+    if (opcode == 1) { // cancello la prenotazione
     }
 }
 
-void *thread_recv(void *arg){ // thread usato per fare il recv e inoltro su una pipe e aggiornamento mappa.
+void *thread_recv(void *arg) { // thread usato per fare il recv e inoltro su una pipe e aggiornamento mappa.
     SocketMessagePreamble buff;
-    while(1){
-        int bytes_ricevuti= recv(socket_des, &buff,sizeof(buff),0);
-        if (bytes_ricevuti==0)
-        {
+    char extra_buff[1024]; // viene utilizzato per i dati extra 
+
+    while (1) {
+        int bytes_ricevuti = recv(socket_des, &buff, sizeof(buff), 0);
+        
+        if (bytes_ricevuti == 0) {
             printf("chiusura connessione\n");
             break;
-        } else if(bytes_ricevuti<0)
-        {
+        } else if (bytes_ricevuti < 0) {
             printf("errore di scrittura dal socket\n");
             break;
         }
-        if (write(pipefd[1],&buff,sizeof(bytes_ricevuti))<0)
-        {
-            printf("errore di scrittura\n"); 
+
+        // controllo il codice che è stato ricevuto
+        if(ntohs(buff.code) == 10){ // messaggio broadcast per aggiornamento posto
+        
+            continue;
+        }
+        
+        if (write(pipefd[1], &buff, sizeof(buff)) < 0) {
+            printf("errore di scrittura\n");
+        }
+
+        if(buff.dim == 0) // non ci sono dei dati extra da ricevere
+            continue;
+        
+        // ricevo dati extra
+        bytes_ricevuti = recv(socket_des, &extra_buff, ntohl(buff.dim), 0);
+        
+        if (bytes_ricevuti == 0) {
+            printf("chiusura connessione\n");
+            break;
+        } else if (bytes_ricevuti < 0) {
+            printf("errore di scrittura dal socket\n");
+            break;
+        }
+
+        if (write(pipefd[1], &extra_buff, sizeof(bytes_ricevuti)) < 0) {
+            printf("errore di scrittura\n");
         }
     }
+
     return NULL;
 }
-
 
 int main(int argc, char const *argv[]) {
 
@@ -302,14 +325,15 @@ int main(int argc, char const *argv[]) {
     printf("Connected to the server ✅\n");
 
     printf("create pipe");
-    if(pipe(pipefd)<0){
+
+    if (pipe(pipefd) < 0) {
         printf("error creating the pipe\n");
         close(socket_des);
         exit(EXIT_FAILURE);
     }
 
-    printf("pipe created\n"); 
-    
+    printf("pipe created\n");
+
     printf("Create recv thread... \n");
 
     pthread_t thread_recv_id;
@@ -352,7 +376,7 @@ int main(int argc, char const *argv[]) {
 
         case 2:
             manage_old_book();
-            
+
             // alla fine ripulisco il terminale e ristampo il menu
             // system("clear");
             printMenu();
