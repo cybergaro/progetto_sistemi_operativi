@@ -3,6 +3,11 @@
 
 #include <pthread.h>
 
+int *sockets; // array per salvare i socket id dei client
+int n_clients; // conta il numero dei client attualmente connessi
+int size_sockets_array; 
+pthread_mutex_t clients_mutex;
+
 void init_client_list() {
     size_sockets_array = 10; 
     n_clients = 0;

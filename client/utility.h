@@ -8,7 +8,7 @@
 
 #define HISTORY_NAME "history.bin"
 
-int history_des; // descrittore del file history
+extern int history_des; // descrittore del file dello storico di prenotazioni dichiarato in utilty.c
 
 typedef struct{
     unsigned int booknumber;

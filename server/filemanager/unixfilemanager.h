@@ -6,7 +6,7 @@
 #define ROWS 10
 #define COLS 15
 
-pthread_mutex_t seat_mutexes[ROWS * COLS];  // mutex per la gestione del file
+extern pthread_mutex_t seat_mutexes[ROWS * COLS];  // mutex per la gestione del file
 
 typedef struct {
     unsigned short int flag;

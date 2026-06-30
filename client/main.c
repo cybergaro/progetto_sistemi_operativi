@@ -12,11 +12,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#ifdef GUI
-#include "gui.h"
-#else
 #include "utility.h"
-#endif
 
 #define SERVER_ADDR "127.0.0.1"
 #define SERVER_PORT 8080

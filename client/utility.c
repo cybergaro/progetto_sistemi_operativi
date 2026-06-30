@@ -14,6 +14,8 @@
 #define COLOR_RED "\033[31m"
 #define COLOR_YELLOW "\x1b[1;38;5;208m"
 
+int history_des; // descrittore del file history
+
 void printMenu() {
     printf("Options: \n0) 📤 Exit \n1) 🆕 New booking  \n2) 🔧 Manage old booking \n");
     fflush(stdout);
