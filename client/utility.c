@@ -125,8 +125,6 @@ void printHistory() {
     printf("+------------+------------------+--------+\n\n");
 }
 
-// | 14-06-2026 21:18 |
-
 void saveToHistory(HistoryRecord *record) {
     lseek(history_des, 0, SEEK_END);
     write(history_des, record, sizeof(HistoryRecord));

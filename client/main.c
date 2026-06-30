@@ -210,7 +210,7 @@ get_book_number:
     printMap(map, booknumber);
 
 get_old_book_opcode:
-    printf("1 to delete book, 0 to cancell \n");
+    printf("1 to delete book, 0 to cancell-> ");
     fflush(stdout);
 
     if (fgets(buff, sizeof(buff), stdin) < 0) {
