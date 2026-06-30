@@ -248,7 +248,16 @@ get_old_book_opcode:
         return;
     }
 
-    if (opcode == 1) { // cancello la prenotazione
+    if(opcode == 1){ // cancello la prenotazione
+        SocketMessagePreamble req;
+        req.dim=0;
+        req.code = htons(7);
+        req.booknumber = htonl(booknumber);
+
+        if (send(socket_des, &req, sizeof(req), 0) < 0) {
+            printf("Error: send cancel book \n");
+            return;
+        }
     }
 }
 
