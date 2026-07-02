@@ -3,14 +3,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 
+#ifdef WINDOWS
+#else
 // librerie posix
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <pthread.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h>
+#endif
 
 #include "utility.h"
 
