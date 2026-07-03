@@ -1,19 +1,7 @@
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
-#ifdef WINDOWS
-#else
-// librerie posix
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <pthread.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
-#endif
 
 #include "utility.h"
 
@@ -43,9 +31,30 @@ typedef struct {
  * 10) broadcast single seat update (comunico al client che un certo posto ha fatto un cambiamento di flag)
  */
 
-int socket_des;
 unsigned short int map[ROWS][COLS]; // matrice che rappresenta lo stato di occupazione dei posti
 
+#if defined(_WIN32) || defined(WINDOWS)
+// ===========================================================================
+// ================================= Windows =================================
+// ===========================================================================
+
+
+
+#else
+
+// ===========================================================================
+// ================================== POSIX ==================================
+// ===========================================================================
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <pthread.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+int socket_des;
 int pipefd[2]; // pipe per comunicare con il server
 
 short int rewrite_map = 0;
@@ -451,3 +460,5 @@ int main(int argc, char const *argv[]) {
         op = -1;
     };
 }
+
+#endif
