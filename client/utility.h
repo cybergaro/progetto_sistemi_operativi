@@ -8,7 +8,13 @@
 
 #define HISTORY_NAME "history.bin"
 
-extern int history_des; // descrittore del file dello storico di prenotazioni dichiarato in utilty.c
+// descrittore del file dello storico di prenotazioni dichiarato in utilty.c
+#if defined(_WIN32) || defined(WINDOWS)
+    #include <windows.h>
+    extern HANDLE history_des; 
+#else
+    extern int history_des;
+#endif
 
 typedef struct{
     unsigned int booknumber;

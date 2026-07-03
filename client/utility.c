@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
 
 #include <sys/types.h>
 
@@ -14,7 +13,14 @@
 #define COLOR_RED "\033[31m"
 #define COLOR_YELLOW "\x1b[1;38;5;208m"
 
-int history_des; // descrittore del file history
+// descrittore del file history
+#if defined(_WIN32) || defined(WINDOWS)
+    HANDLE history_des;
+#else
+    #include <unistd.h>
+    #include <fcntl.h>
+    int history_des;  
+#endif
 
 void printMenu() {
     printf("Options: \n0) 📤 Exit \n1) 🆕 New booking  \n2) 🔧 Manage old booking \n");
@@ -122,30 +128,88 @@ void printHistory() {
 
     printf("\n+------------+------------------+--------+ \n|    Code    |       Date       | N.seat | \n");
 
-    while (read(history_des, &record, sizeof(record)) != 0) {
-
-        struct tm *tm_info = localtime(&record.time);
-        char buffer[26];
+#if defined(_WIN32) || defined(WINDOWS)
+    
+    SetFilePointer(history_des, 0, NULL, FILE_BEGIN);
+    DWORD bytesRead;
+    
+    while (ReadFile(history_des, &record, sizeof(record), &bytesRead, NULL) && bytesRead == sizeof(record)) {
+    
+        struct tm *tm_info = localtime(&record.time); char buffer[26];
         strftime(buffer, sizeof(buffer), "%d/%m/%Y %H:%M", tm_info);
+    
+        printf("+------------+------------------+--------+ \n| %10d | %s |  %4d  | \n", record.booknumber, buffer, record.nseats);
+    
+    }
 
+#else
+
+    lseek(history_des, 0, SEEK_SET);
+
+    while (read(history_des, &record, sizeof(record)) != 0) {
+        struct tm *tm_info = localtime(&record.time); char buffer[26];
+        strftime(buffer, sizeof(buffer), "%d/%m/%Y %H:%M", tm_info);
         printf("+------------+------------------+--------+ \n| %10d | %s |  %4d  | \n", record.booknumber, buffer, record.nseats);
     }
+    
+#endif
 
     printf("+------------+------------------+--------+\n\n");
 }
 
 void saveToHistory(HistoryRecord *record) {
+#if defined(_WIN32) || defined(WINDOWS)
+    
+    SetFilePointer(history_des, 0, NULL, FILE_END);
+    DWORD bytesWritten;
+    WriteFile(history_des, record, sizeof(HistoryRecord), &bytesWritten, NULL);
+    
+#else
+    
     lseek(history_des, 0, SEEK_END);
     write(history_des, record, sizeof(HistoryRecord));
+    
+#endif
 }
 
 void removeFromHistory(unsigned int booknumber) {
-    lseek(history_des, 0, SEEK_SET);
 
     HistoryRecord record;
     int found = 0;
     off_t read_pos, write_pos;
 
+    lseek(history_des, 0, SEEK_SET);
+
+#if defined(_WIN32) || defined(WINDOWS)
+    
+    SetFilePointer(history_des, 0, NULL, FILE_BEGIN);
+    
+    DWORD bytesRW;
+
+    while (ReadFile(history_des, &record, sizeof(HistoryRecord), &bytesRW, NULL) && bytesRW == sizeof(HistoryRecord)) {
+        if (record.booknumber == booknumber) {
+            found = 1;
+            write_pos = SetFilePointer(history_des, 0, NULL, FILE_CURRENT) - sizeof(HistoryRecord);
+            read_pos = SetFilePointer(history_des, 0, NULL, FILE_CURRENT);
+            break;
+        }
+    }
+
+    if (!found) return;
+
+    while (1) {
+        SetFilePointer(history_des, read_pos, NULL, FILE_BEGIN);
+        if (!ReadFile(history_des, &record, sizeof(HistoryRecord), &bytesRW, NULL) || bytesRW < sizeof(HistoryRecord)) break;
+        SetFilePointer(history_des, write_pos, NULL, FILE_BEGIN);
+        WriteFile(history_des, &record, sizeof(HistoryRecord), &bytesRW, NULL);
+        read_pos += sizeof(HistoryRecord); write_pos += sizeof(HistoryRecord);
+    }
+
+    SetEndOfFile(history_des);
+    
+#else
+    
+    lseek(history_des, 0, SEEK_SET);
     while (read(history_des, &record, sizeof(HistoryRecord)) == sizeof(HistoryRecord)) {
         if (record.booknumber == booknumber) {
             found = 1;
@@ -154,28 +218,19 @@ void removeFromHistory(unsigned int booknumber) {
             break;
         }
     }
-
-    if (!found) {
-        return;
-    }
+    if (!found) return;
 
     while (1) {
         lseek(history_des, read_pos, SEEK_SET);
-        if (read(history_des, &record, sizeof(HistoryRecord)) < sizeof(HistoryRecord)) {
+        if (read(history_des, &record, sizeof(HistoryRecord)) < sizeof(HistoryRecord)) 
             break;
-        }
-
+     
         lseek(history_des, write_pos, SEEK_SET);
-        if (write(history_des, &record, sizeof(HistoryRecord)) < 0) {
-            printf("Error: fallita la scrittura durante la rimozione dello storico\n");
-            return;
-        }
-
-        read_pos += sizeof(HistoryRecord);
-        write_pos += sizeof(HistoryRecord);
+        write(history_des, &record, sizeof(HistoryRecord));
+        read_pos += sizeof(HistoryRecord); write_pos += sizeof(HistoryRecord);
     }
 
-    if (ftruncate(history_des, write_pos) < 0) {
-        printf("Error:truncate histoy\n");
-    } 
+    ftruncate(history_des, write_pos);
+    
+#endif
 }
