@@ -23,4 +23,6 @@ server.
 Il server deve poter gestire le richieste dei client in modo concorrente.                   
 ## Istruzioni
 Per avviare il server usare:
-```make posix```
+```bash
+make posix
+```
