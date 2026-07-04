@@ -20,9 +20,29 @@ poltrona).
 Si precisa che lo studente e' tenuto a realizzare sia il client che il
 server.
 
-Il server deve poter gestire le richieste dei client in modo concorrente.                   
+Il server deve poter gestire le richieste dei client in modo concorrente. 
+                 
 ## Istruzioni
-Per avviare il server usare:
+### 🖥️ Server
+Il server è compatibile **solo con sistemi POSIX** (Linux, macOS). <br>
+Per compilare ed eseguire, apri il terminale e digita:
 ```bash
+cd server
 make posix
+./server.out
+```
+
+### 💻 Client
+Il client è cross-platform e compatibile sia con sistemi **POSIX** che **Windows**.
+Su sistemi POSIX:
+```bash
+cd client
+make posix
+./client.out
+```
+Su sistemi Windows:
+```DOS
+cd client
+make windows
+./client.exe
 ```
