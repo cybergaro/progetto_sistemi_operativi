@@ -3,49 +3,6 @@
 #include <string.h>
 #include <time.h>
 
-#include "utility.h"
-
-#define SERVER_ADDR "127.0.0.1"
-#define SERVER_PORT 8080
-
-typedef struct {
-    unsigned short code;     // indica il codice della richiesta
-    unsigned short row;      // indica la fila del posto a cui si sta facendo riferimento
-    unsigned short col;      // indica la colonna del posto
-    unsigned int booknumber; // indica il codice della prenotazione
-    unsigned int dim;        // rappresenta la dimensione dei dati che seguono il preambolo
-    int short_data;          // questo campo non ha un uso specifico ma può essere utilizzato per inviare delle informazioni all'occorrenza
-} SocketMessagePreamble;
-
-/**
- * Allowed codes:
- * 1)  get map with flags
- * 2)  send map with flags (il server spedisce al client la mappa con i posti)
- * 3)  request seat (imposta il flag di un posto a 1 indicando il fatto che su quel posto è in corso una prenotazione)
- * 4)  reserved seat (il posto ora ha il flag di prenotazine pending f=1)
- * 5)  seat not bookable (questo posto non risulta prenotabile)
- * 6)  confirm book (conferma la prenotazione)
- * 7)  cancell book (rimuove tutti i posti di una prenotazione)
- * 8)  send booknumber (usato dal server per comunicare al client il codice di prenotazione)
- * 9)  remove single seat during the booking operation
- * 10) broadcast single seat update (comunico al client che un certo posto ha fatto un cambiamento di flag)
- */
-
-unsigned short int map[ROWS][COLS]; // matrice che rappresenta lo stato di occupazione dei posti
-
-#if defined(_WIN32) || defined(WINDOWS)
-// ===========================================================================
-// ================================= Windows =================================
-// ===========================================================================
-
-
-
-#else
-
-// ===========================================================================
-// ================================== POSIX ==================================
-// ===========================================================================
-
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <pthread.h>
@@ -53,6 +10,10 @@ unsigned short int map[ROWS][COLS]; // matrice che rappresenta lo stato di occup
 #include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
+
+#include "utility.h"
+
+unsigned short int map[ROWS][COLS]; // matrice che rappresenta lo stato di occupazione dei posti
 
 int socket_des;
 int pipefd[2]; // pipe per comunicare con il server
@@ -460,5 +421,3 @@ int main(int argc, char const *argv[]) {
         op = -1;
     };
 }
-
-#endif

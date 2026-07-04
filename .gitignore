@@ -5,3 +5,6 @@
 *history.bin
 .vs
 .vscode
+client.out
+client.exe
+server.out
