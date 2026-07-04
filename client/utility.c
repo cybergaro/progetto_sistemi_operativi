@@ -122,7 +122,6 @@ int getSeatNumber(int *numero, char *lettera) {
 void printHistory() {
     system("clear");
 
-    lseek(history_des, 0, SEEK_SET);
 
     HistoryRecord record;
 
@@ -177,8 +176,6 @@ void removeFromHistory(unsigned int booknumber) {
     HistoryRecord record;
     int found = 0;
     off_t read_pos, write_pos;
-
-    lseek(history_des, 0, SEEK_SET);
 
 #if defined(_WIN32) || defined(WINDOWS)
     
