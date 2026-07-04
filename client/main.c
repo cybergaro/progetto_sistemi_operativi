@@ -49,6 +49,7 @@ typedef struct {
 unsigned short int map[ROWS][COLS]; // matrice che rappresenta lo stato di occupazione dei posti
 
 #if defined(_WIN32) || defined(WINDOWS)
+
 // ===========================================================================
 // ================================= Windows =================================
 // ===========================================================================
@@ -329,7 +330,9 @@ DWORD WINAPI thread_recv(LPVOID arg) {
 
 int main(int argc, char const *argv[]) {
 
-    // Abilita i colori ANSI per console Windows 10
+    printf("Setup... ⏳\n");
+    
+    // abilito i colori per il terminale
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD dwMode = 0;
     if (hOut != INVALID_HANDLE_VALUE && GetConsoleMode(hOut, &dwMode)) {
@@ -337,7 +340,6 @@ int main(int argc, char const *argv[]) {
         SetConsoleMode(hOut, dwMode);
     }
 
-    printf("Setup... ⏳\n");
     printf("Socket setup \n");
 
     WSADATA wsa;
