@@ -21,3 +21,6 @@ Si precisa che lo studente e' tenuto a realizzare sia il client che il
 server.
 
 Il server deve poter gestire le richieste dei client in modo concorrente.                   
+## Istruzioni
+Per avviare il server usare:
+```make posix```
