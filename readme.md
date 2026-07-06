@@ -33,7 +33,7 @@ make posix
 ```
 
 ### 💻 Client
-Il client è cross-platform e compatibile sia con sistemi **POSIX** che **Windows**.
+Il client è cross-platform e compatibile sia con sistemi **POSIX** che **Windows**. <br >
 Su sistemi POSIX:
 ```bash
 cd client

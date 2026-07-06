@@ -20,8 +20,8 @@
 
 #include "utility.h"
 
-#define SERVER_ADDR "192.168.1.36"
-#define SERVER_PORT 8080
+#define SERVER_ADDR "127.0.0.1"
+#define SERVER_PORT 8081
 
 typedef struct {
     unsigned short code;     // indica il codice della richiesta
@@ -300,6 +300,7 @@ DWORD WINAPI thread_recv(LPVOID arg) {
 
         if (bytes_ricevuti == 0) {
             printf("chiusura connessione\n");
+            exit(EXIT_FAILURE);
             break;
         } else if (bytes_ricevuti < 0) {
             break;
@@ -708,6 +709,7 @@ void *thread_recv(void *arg) { // thread usato per fare il recv e inoltro su una
 
         if (bytes_ricevuti == 0) {
             printf("chiusura connessione\n");
+            exit(EXIT_FAILURE);
             break;
         } else if (bytes_ricevuti < 0) {
             break;
@@ -730,6 +732,7 @@ void *thread_recv(void *arg) { // thread usato per fare il recv e inoltro su una
 
         if (bytes_ricevuti == 0) {
             printf("chiusura connessione\n");
+            exit(EXIT_FAILURE);
             break;
         } else if (bytes_ricevuti < 0) {
             printf("errore di scrittura dal socket\n");
