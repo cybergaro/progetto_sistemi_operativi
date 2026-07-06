@@ -46,3 +46,6 @@ cd client
 make windows
 ./client.exe
 ```
+
+## Documentazione
+La documentazione completa del progetto è disponibile [qui](https://docs.google.com/document/d/1iBMJ6MiyjOpn6gtsE4-hWcNd_O7Nk7WY0Damla6CSV0/edit?usp=sharing)
