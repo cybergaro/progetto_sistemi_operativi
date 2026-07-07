@@ -95,6 +95,11 @@ void create_multiple_delete_socket_messages(int *modified_seats, int num_modifie
 }
 
 void *connection_handler(void *arg) {
+    // creo una maschera per le segnalazioni
+    sigset_t set;
+    sigfillset(&set);
+    pthread_sigmask(SIG_BLOCK, &set, NULL);
+
     struct connection_handler_arg *data = (struct connection_handler_arg *)arg;
     int client_sock = data->socket_id;
 
