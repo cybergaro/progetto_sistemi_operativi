@@ -8,6 +8,12 @@
 
 #define HISTORY_NAME "history.bin"
 
+typedef struct{
+    unsigned int booknumber;
+    unsigned int nseats;
+    time_t time;
+} HistoryRecord;
+
 // descrittore del file dello storico di prenotazioni dichiarato in utilty.c
 #if defined(_WIN32) || defined(WINDOWS)
     #include <windows.h>
@@ -15,12 +21,6 @@
 #else
     extern int history_des;
 #endif
-
-typedef struct{
-    unsigned int booknumber;
-    unsigned int nseats;
-    time_t time;
-} HistoryRecord;
 
 void printMenu();
 void printMap(unsigned short int map[ROWS][COLS], unsigned int booknumber);

@@ -158,7 +158,7 @@ int set_all_flag_from_nbook(int ds, int flag, int nbook, int **modified_seats, i
             return -1;
         }
 
-        if (s.nbook == nbook && !(flag == 3 && s.flag != 1)) {
+        if ((s.nbook == nbook || nbook == 0) && !(flag == 3 && s.flag != 1)) {
 
             if (flag == 3) {
                 s.flag = 0;

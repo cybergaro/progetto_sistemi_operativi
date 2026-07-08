@@ -17,7 +17,7 @@
 #include <sys/types.h>
 
 #define BACKLOG 10
-#define PORT 8080
+#define PORT 8081
 
 #define NAME_FILE_MAP "cinema_map.bin"
 
@@ -49,6 +49,8 @@ typedef struct {
  * 9)  remove single seat during the booking operation
  * 10) broadcast single seat update (comunico al client che un certo posto ha fatto un cambiamento di flag)
  */
+
+int general_socket; // descrittore del socket
 
 void send_brodcast_message(void *message, int message_size, int client_sock) {
     if (sockets == NULL || n_clients == 0) { // controllo se ci sono dei client connessi
@@ -93,6 +95,11 @@ void create_multiple_delete_socket_messages(int *modified_seats, int num_modifie
 }
 
 void *connection_handler(void *arg) {
+    // creo una maschera per le segnalazioni
+    sigset_t set;
+    sigfillset(&set);
+    pthread_sigmask(SIG_BLOCK, &set, NULL);
+
     struct connection_handler_arg *data = (struct connection_handler_arg *)arg;
     int client_sock = data->socket_id;
 
@@ -313,7 +320,35 @@ void sigpipe_handler(int sig) {
 }
 
 void sigint_handler(int sig) {
-    printf("\n Sig Int \n");
+
+    close(general_socket); // faccio in modo che nessuno si possa più connettere
+
+    // disconnetto tutti i client
+    for (int i = 0; i < n_clients; i++){
+        if (sockets[i] > 0) {
+            printf("chiusura socket %d\n", sockets[i]);
+            close(sockets[i]);
+        }
+    }
+
+    
+    printf("Connections with all clients are closed\n");
+    fflush(stdout);
+    
+    // creo una nuova sessione sul file
+    int fd = open(NAME_FILE_MAP, O_RDWR, 0644);
+    if (fd < 0) {
+        printf("Error: creation of new session on map file \n");
+        exit(EXIT_FAILURE);
+    }
+
+    // rilascio tutti i posti che qualcuno stava prenotando
+    int *modified_seats = NULL;
+    int change_counter;
+
+    set_all_flag_from_nbook(fd, 3, 0, &modified_seats, &change_counter);
+    
+    exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char const *argv[]) {
@@ -326,7 +361,7 @@ int main(int argc, char const *argv[]) {
     server_addr.sin_port = htons(PORT);
     server_addr.sin_addr.s_addr = INADDR_ANY;
 
-    int general_socket = socket(PF_INET, SOCK_STREAM, 0);
+    general_socket = socket(PF_INET, SOCK_STREAM, 0);
     if (general_socket == -1) {
         printf("Error: Creation of general socket \n");
         exit(EXIT_FAILURE);
