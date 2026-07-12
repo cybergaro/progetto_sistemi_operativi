@@ -1,6 +1,5 @@
 #include "utility.h"
 #include <ctype.h>
-#include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,7 +16,6 @@
 #else
     #include <unistd.h>
     #include <fcntl.h>
-    #include <sys/types.h>
     int history_des;  
 #endif
 
