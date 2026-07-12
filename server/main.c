@@ -17,7 +17,7 @@
 #include <sys/types.h>
 
 #define BACKLOG 10
-#define PORT 8081
+#define PORT 8080
 
 #define NAME_FILE_MAP "cinema_map.bin"
 
@@ -122,7 +122,7 @@ void *connection_handler(void *arg) {
     while (1) {
         read_size = recv(client_sock, &req, sizeof(req), MSG_WAITALL);
 
-        if (read_size == 0) {
+        if (read_size <= 0) {
             printf("Client disconnected! \n");
             fflush(stdout);
 
@@ -141,9 +141,6 @@ void *connection_handler(void *arg) {
 
             close(fd);
             return NULL;
-        } else if (read_size < 0) {
-            printf("Error: recv \n");
-            break;
         } else if (read_size == sizeof(req)) { // dati ricevuti correttamente
             int req_code = ntohs(req.code);
 
