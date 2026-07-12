@@ -1,14 +1,16 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-
 #if defined(_WIN32) || defined(WINDOWS)
 #include <winsock2.h>
 #include <windows.h>
 #include <ws2tcpip.h>
 #pragma comment(lib, "ws2_32.lib")
-#else
+#endif
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+#if !defined(_WIN32) && !defined(WINDOWS)
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <pthread.h>
