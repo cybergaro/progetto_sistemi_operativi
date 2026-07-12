@@ -112,7 +112,7 @@ void new_book() {
     LeaveCriticalSection(&rewrite_map_mutex);
 
 get_seat:
-    system("cls");
+    system("clear");
     printMap(map, booknumber);
 
 redo_get_seat:
