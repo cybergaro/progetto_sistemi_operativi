@@ -21,7 +21,7 @@
 #include "utility.h"
 
 #define SERVER_ADDR "127.0.0.1"
-#define SERVER_PORT 8081
+#define SERVER_PORT 8080
 
 typedef struct {
     unsigned short code;     // indica il codice della richiesta
@@ -112,7 +112,7 @@ void new_book() {
     LeaveCriticalSection(&rewrite_map_mutex);
 
 get_seat:
-    system("cls");
+    system("clear");
     printMap(map, booknumber);
 
 redo_get_seat:

@@ -40,7 +40,8 @@ cd client
 make posix
 ./client.out
 ```
-Su sistemi Windows:
+Su sistemi Windows: <br>
+Il sistema è stato testato tramite la shell `MSYS2 MINGW64`. Una volta posizionatosi all'interno della directory del progetto eseguire:
 ```DOS
 cd client
 make windows
