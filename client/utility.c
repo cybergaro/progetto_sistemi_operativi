@@ -6,8 +6,6 @@
 #include <string.h>
 #include <time.h>
 
-#include <sys/types.h>
-
 #define COLOR_GREEN "\x1b[32m"
 #define COLOR_RESET "\x1b[0m"
 #define COLOR_RED "\033[31m"
@@ -19,6 +17,7 @@
 #else
     #include <unistd.h>
     #include <fcntl.h>
+    #include <sys/types.h>
     int history_des;  
 #endif
 
