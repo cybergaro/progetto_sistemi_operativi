@@ -271,7 +271,7 @@ void *connection_handler(void *arg) {
                     continue;
                 }
 
-                booknumber = 0;
+                // booknumber = 0;
 
                 break;
             }
